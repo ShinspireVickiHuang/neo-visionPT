@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <!-- 頂部導航欄 -->
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button id="logoutBtn" class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm transition shadow-sm">
+        登出
+      </button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <!-- 側邊選單（由 app.js 依 menus 資料動態渲染） -->
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <!-- 主內容區（由 app.js 依路由渲染對應模組） -->
+    <main id="main" class="flex-1 p-6 overflow-x-hidden"></main>
+  </div>
+
+  <!-- ============================================================
+       模組範本：報表管理／週報表（仿 NEWPT_G）
+       ============================================================ -->
+  <template id="module-report-weekly">
+    <div>
+      <!-- 麵包屑 -->
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">報表管理 / 週報表</h2>
+      </div>
+
+      <!-- 白色內容卡片 -->
+      <div class="bg-white rounded shadow-sm min-h-screen">
+
+        <!-- 查詢過濾器區域 -->
+        <div class="p-6 border-b flex flex-wrap items-center gap-6">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-12">建案</label>
+            <select class="border rounded px-3 py-2 text-sm w-64 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option>哆啦居</option>
+              <option>測試建案 A</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm transition">
+              <i data-lucide="search" class="w-4 h-4"></i> 查詢
+            </button>
+            <button class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm transition">
+              <i data-lucide="plus" class="w-4 h-4"></i> 新增
+            </button>
+          </div>
+        </div>
+
+        <!-- 表格區域 -->
+        <div class="overflow-x-auto p-6">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="table-header-bg text-white">
+                <th class="p-3 text-left font-medium whitespace-nowrap">週期</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">日期(起)</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">日期(迄)</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">廣告預算總額<br>(元)</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">實支廣告預算<br>(元)</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">廣告比例</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">本週工作重點</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">下週預計工作計畫</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">建立時間</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">異動時間</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">操作</th>
+              </tr>
+            </thead>
+            <tbody id="weeklyReportRows" class="divide-y"></tbody>
+          </table>
+        </div>
+
+        <!-- 未來功能模組區域 -->
+        <div id="new-module-container" class="p-6 mt-10 border-t border-dashed">
+          <p class="text-gray-400 text-center italic">-- 您可以在此區塊新增其他功能模組或統計圖表 --</p>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============================================================
+       模組範本：建案管理／建案管理
+       ============================================================ -->
+  <template id="module-building-list">
+    <div>
+      <!-- 麵包屑 -->
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">建案管理 / 建案管理</h2>
+      </div>
+
+      <!-- 搜尋條件卡片 -->
+      <div class="bg-white rounded shadow-sm p-6 mb-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="text-base font-bold text-gray-700">搜尋條件</h3>
+            <p class="text-xs text-gray-400 mt-1">可依案件編號或建案名稱篩選</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm transition">
+              <i data-lucide="plus" class="w-4 h-4"></i> 新增建案
+            </button>
+            <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm transition">
+              <i data-lucide="file-text" class="w-4 h-4"></i> 隱私權條款(個資聲明)模板
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">案件編號</label>
+            <input type="text" placeholder="請輸入案件編號"
+                   class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">建案名稱</label>
+            <input type="text" placeholder="請輸入建案名稱"
+                   class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="flex items-center gap-1 border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 rounded text-sm transition">
+            <i data-lucide="eraser" class="w-4 h-4"></i> 清除
+          </button>
+          <button class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm transition">
+            <i data-lucide="search" class="w-4 h-4"></i> 搜尋
+          </button>
+        </div>
+      </div>
+
+      <!-- 列表卡片 -->
+      <div class="bg-white rounded shadow-sm">
+        <div class="overflow-x-auto p-6">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="table-header-bg text-white">
+                <th class="p-3 text-left font-medium whitespace-nowrap">ID</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">案件編號</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">建案名稱</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">地段</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">棟數</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">代銷公司</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">相關人員</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">狀態</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">操作</th>
+              </tr>
+            </thead>
+            <tbody id="buildingRows" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============================================================
+       彈窗範本：建案編輯
+       - 已移除「授權序號」
+       - 已新增「可請佣金(%)」
+       ============================================================ -->
+  <template id="modal-building-edit">
+    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" data-backdrop>
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- 標題 -->
+        <div class="px-6 py-4 border-b">
+          <h3 class="text-base font-bold text-gray-800">編輯</h3>
+        </div>
+
+        <!-- 表單內容 -->
+        <div class="px-6 py-5 overflow-y-auto flex-1 space-y-5 text-sm">
+
+          <!-- 建案名稱 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>建案名稱 <span class="text-red-500">*</span></label>
+            <input type="text" data-field="name"
+                   class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- 案件編號 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>案件編號 <span class="text-red-500">*</span><span class="text-red-500 text-xs ml-1">限制100字</span></label>
+            <input type="text" maxlength="100" data-field="code"
+                   class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- 跑單登入圖片 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-start">
+            <label>
+              跑單登入圖片
+              <div class="text-red-500 text-xs mt-1">640px*970px</div>
+              <a href="#" class="text-blue-500 text-xs underline">下載</a>
+            </label>
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-blue-100 border rounded flex-shrink-0"></div>
+              <input type="file" class="text-xs" />
+            </div>
+          </div>
+
+          <!-- 跑單首頁圖片 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-start">
+            <label>
+              跑單首頁圖片 <span class="text-red-500 text-xs">1600px*400px</span>
+              <a href="#" class="block text-blue-500 text-xs underline mt-1">下載</a>
+            </label>
+            <div class="flex items-center gap-3">
+              <div class="w-16 h-8 bg-blue-100 border rounded flex-shrink-0"></div>
+              <input type="file" class="text-xs" />
+            </div>
+          </div>
+
+          <!-- 地段 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-start">
+            <label class="pt-2">地段</label>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs mb-1 block">縣市 <span class="text-red-500">*</span></label>
+                  <select data-field="city"
+                          class="w-full border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">請選擇縣市</option>
+                    <option>台北市</option><option>新北市</option><option>桃園市</option>
+                    <option>台中市</option><option>台南市</option><option>高雄市</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs mb-1 block">鄉鎮 <span class="text-red-500">*</span></label>
+                  <select data-field="district"
+                          class="w-full border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">請選擇鄉鎮</option>
+                  </select>
+                </div>
+              </div>
+              <input type="text" data-field="address" placeholder="詳細地址"
+                     class="w-full border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <!-- 棟數（顯示用） -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>棟數</label>
+            <span data-field="blockCount" class="text-gray-700"></span>
+          </div>
+
+          <!-- 代銷公司（顯示用） -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-start">
+            <label class="pt-1">代銷公司</label>
+            <span data-field="agencies" class="text-gray-700 leading-relaxed"></span>
+          </div>
+
+          <!-- 相關人員 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>相關人員</label>
+            <input type="text" data-field="contact"
+                   class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- 狀態 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>狀態 <span class="text-red-500">*</span></label>
+            <select data-field="status"
+                    class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option>已開案</option>
+              <option>未開案</option>
+              <option>結案</option>
+            </select>
+          </div>
+
+          <!-- 開案日期 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>開案日期 <span class="text-red-500">*</span></label>
+            <input type="date" data-field="openDate"
+                   class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- ★ 新增：可請佣金(%) -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>可請佣金(%)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" data-field="commissionRate" min="0" max="100" step="0.01" placeholder="0.00"
+                     class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40" />
+              <span class="text-gray-500 text-xs">%</span>
+            </div>
+          </div>
+
+          <!-- 客資表單 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>客資表單</label>
+            <select data-field="customerForm"
+                    class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">請選擇</option>
+            </select>
+          </div>
+
+          <!-- 來電表單 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>來電表單</label>
+            <select data-field="callForm"
+                    class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option>8888-2(22)</option>
+            </select>
+          </div>
+
+          <!-- 開關群組 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>跑單預約資料共享</label>
+            <button type="button" data-toggle data-field="shareReservation" class="toggle-switch"></button>
+          </div>
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>跑單行事曆共享</label>
+            <button type="button" data-toggle data-field="shareCalendar" class="toggle-switch"></button>
+          </div>
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>跑單銷控表</label>
+            <button type="button" data-toggle data-field="shareSalesControl" class="toggle-switch"></button>
+          </div>
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>是否代簽</label>
+            <button type="button" data-toggle data-field="proxySign" class="toggle-switch"></button>
+          </div>
+
+          <!-- 開啟業務拆分 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-center">
+            <label>開啟業務拆分 <span class="text-red-500">*</span></label>
+            <select data-field="splitSales"
+                    class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option>關閉</option>
+              <option>開啟</option>
+            </select>
+          </div>
+
+          <!-- 隱私權條款 -->
+          <div class="grid grid-cols-[140px_1fr] gap-4 items-start">
+            <label class="pt-2">隱私權條款(個資聲明)</label>
+            <textarea data-field="privacy" rows="3" placeholder="null"
+                      class="border rounded px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"></textarea>
+          </div>
+        </div>
+
+        <!-- 動作 -->
+        <div class="px-6 py-4 border-t flex justify-center gap-3 bg-gray-50">
+          <button data-confirm
+                  class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-8 py-2 rounded text-sm transition">確定</button>
+          <button data-cancel
+                  class="bg-red-500 hover:bg-red-600 text-white px-8 py-2 rounded text-sm transition">取消</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============================================================
+       模組範本：尚未建置（其他選單預設導向這裡）
+       ============================================================ -->
+  <template id="module-placeholder">
+    <div>
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700" data-bind="breadcrumb"></h2>
+      </div>
+      <div class="bg-white rounded shadow-sm p-12 text-center">
+        <h3 class="text-xl font-bold text-gray-700 mb-2" data-bind="title"></h3>
+        <p class="text-gray-400">此模組尚未建置，請在 <code class="px-1 bg-gray-100 rounded">app.js</code> 的 <code class="px-1 bg-gray-100 rounded">modules</code> 中註冊，或新增 <code class="px-1 bg-gray-100 rounded">&lt;template id="module-XXX"&gt;</code>。</p>
+      </div>
+    </div>
+  </template>
+
+  <script src="assets/js/app.js?v=6"></script>
+</body>
+</html>

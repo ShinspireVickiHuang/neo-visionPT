@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>佣金表 - 列印 / 匯出 PDF</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: #1f2937;
+      background: #f1f5f9;
+    }
+    .sheet {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 36px 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin: 0 0 4px;
+      letter-spacing: 4px;
+    }
+    .meta {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+    .meta span { margin: 0 12px; }
+    .note {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 12px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    .commission-table { margin-bottom: 18px; }
+    .commission-table th, .commission-table td {
+      border: 1px solid #d1d5db;
+      padding: 8px 10px;
+      font-size: 13px;
+      text-align: left;
+    }
+    .commission-table thead th { background: #f9fafb; text-align: center; }
+    .yellow { background: #fffbe6; text-align: center; font-weight: bold; }
+    .center { text-align: center; }
+    .right  { text-align: right; }
+    .sum-row td { background: #fef2f2; color: #dc2626; font-weight: bold; text-align: center; }
+
+    .lower { width: 100%; border-collapse: collapse; }
+    .lower td { border: 1px solid #d1d5db; vertical-align: top; }
+    .lower-label { width: 80px; text-align: center; font-weight: bold; padding: 12px; vertical-align: middle; }
+    .extra-cell { width: 240px; padding: 14px; }
+    .extra-cell .row1 { margin-bottom: 8px; font-size: 13px; }
+    .extra-cell .row2 { font-size: 12px; margin-bottom: 6px; }
+    .extra-cell .row3 { font-size: 11px; color: #6b7280; margin-top: 8px; }
+
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table td { border: 1px solid #d1d5db; padding: 6px; font-size: 13px; }
+    .detail-title { background: #f9fafb; font-weight: bold; text-align: center; }
+    .group-cell { width: 70px; text-align: center; font-weight: bold; background: #fafafa; }
+    .total-row td { background: #f9fafb; font-weight: bold; }
+    .total-row .right { color: #dc2626; }
+
+    /* 簽核區 */
+    .signoff {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 2px solid #374151;
+    }
+    .signoff h2 {
+      font-size: 14px;
+      margin: 0 0 14px;
+      color: #374151;
+      letter-spacing: 2px;
+    }
+    .sign-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .sign-card {
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 10px 12px 14px;
+      background: #fafafa;
+    }
+    .sign-role {
+      font-weight: bold;
+      color: #374151;
+      font-size: 13px;
+      border-bottom: 1px dashed #d1d5db;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .sign-name {
+      font-size: 16px;
+      color: #111827;
+      min-height: 24px;
+      letter-spacing: 1px;
+      font-family: "標楷體", "DFKai-SB", serif;
+    }
+    .sign-time {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 6px;
+    }
+
+    /* 工具列：列印時隱藏 */
+    .toolbar {
+      max-width: 1080px;
+      margin: 0 auto 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar .left a { color: #6b7280; text-decoration: none; font-size: 13px; }
+    .toolbar .left a:hover { color: #2563eb; }
+    .btn-print {
+      background: #a09080;
+      color: #fff;
+      border: 0;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-print:hover { background: #8d7d70; }
+
+    /* 列印樣式 */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .toolbar { display: none; }
+      .sheet { box-shadow: none; padding: 0; max-width: none; }
+    }
+    @page { size: A4; margin: 1.5cm; }
+  </style>
+</head>
+<body>
+
+  <!-- 工具列 -->
+  <div class="toolbar">
+    <div class="left">
+      <a href="commission-list.html">← 返回佣金列表</a>
+    </div>
+    <button class="btn-print" onclick="window.print()">匯出 PDF / 列印</button>
+  </div>
+
+  <!-- 佣金表單據 -->
+  <div class="sheet">
+    <h1>佣金表</h1>
+    <div class="meta">
+      <span>建案：畫世代</span>
+      <span>月份：115 年 1 月</span>
+      <span>銷售計算期間：1/1 – 1/31</span>
+      <span>表單編號：CMS-1150100123</span>
+    </div>
+
+    <p class="note">※ 總銷、可請佣金(%)、已收回佣金均由系統自動帶入（來源：銷控表），不可手動修改；可請佣金金額與未收回佣金為自動計算。</p>
+
+    <!-- 上半部 -->
+    <table class="commission-table">
+      <thead>
+        <tr>
+          <th>佣金部份</th>
+          <th colspan="2">總銷（可請佣）</th>
+          <th class="yellow">可請佣金<br>(%)</th>
+          <th class="yellow">可請佣金金額</th>
+          <th colspan="2">已收回佣金</th>
+          <th>未收回佣金</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="center" rowspan="2"><b>6%</b></td>
+          <td class="center" style="width:30px;">戶</td>
+          <td>2,500 萬</td>
+          <td class="yellow" rowspan="2">6 %</td>
+          <td class="yellow" rowspan="2">168.00 萬</td>
+          <td class="center" style="width:30px;">戶</td>
+          <td>120 萬</td>
+          <td class="center" rowspan="2"><b>48.00 萬</b></td>
+        </tr>
+        <tr>
+          <td class="center">車</td><td>300 萬</td>
+          <td class="center">車</td><td>0 萬</td>
+        </tr>
+        <tr>
+          <td class="center" rowspan="2"><b>4%</b></td>
+          <td class="center">戶</td><td>1,200 萬</td>
+          <td class="yellow" rowspan="2">4 %</td>
+          <td class="yellow" rowspan="2">56.00 萬</td>
+          <td class="center">戶</td><td>44 萬</td>
+          <td class="center" rowspan="2"><b>12.00 萬</b></td>
+        </tr>
+        <tr>
+          <td class="center">車</td><td>200 萬</td>
+          <td class="center">車</td><td>0 萬</td>
+        </tr>
+        <tr class="sum-row">
+          <td>合計</td>
+          <td colspan="2">4,200 萬</td>
+          <td></td>
+          <td>224 萬</td>
+          <td colspan="2">164 萬</td>
+          <td>60 萬</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 下半部 -->
+    <table class="lower">
+      <tr>
+        <td class="lower-label">超價<br>部份<br>金額</td>
+        <td class="extra-cell">
+          <div class="row1">500 萬（公司 30 %）</div>
+          <div class="row2">超價全額（萬）</div>
+          <div style="font-size:14px;font-weight:bold;color:#374151;">150 萬</div>
+          <div class="row3">※ 由系統自動計算</div>
+        </td>
+        <td class="lower-label" style="width:60px;">未收回<br>佣金<br>明細</td>
+        <td style="padding:0;">
+          <table class="detail-table">
+            <tr><td colspan="2" class="detail-title">請各案場預估「一年」未收回佣金之下款時程</td></tr>
+            <tr><td class="group-cell" rowspan="3">簽約款</td><td>20 萬　預計下款日為　115 年 5 月 15 日</td></tr>
+            <tr><td>15 萬　預計下款日為　115 年 6 月 15 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td class="group-cell" rowspan="3">特殊狀況</td><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td class="group-cell" rowspan="4">交屋</td><td>10 萬　預計下款日為　115 年 8 月 30 日</td></tr>
+            <tr><td>10 萬　預計下款日為　115 年 9 月 30 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr><td class="group-cell" rowspan="2">保留款</td><td>5 萬　預計下款日為　116 年 1 月 15 日</td></tr>
+            <tr><td>0 萬　預計下款日為　— 年 — 月 — 日</td></tr>
+            <tr class="total-row"><td style="text-align:right;">佣金合計金額</td><td class="right">60 萬　（自動加總上方所有金額）</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- 簽核區 -->
+    <div class="signoff">
+      <h2>簽核紀錄</h2>
+      <div class="sign-grid">
+        <div class="sign-card">
+          <div class="sign-role">申請人</div>
+          <div class="sign-name">陳曉華</div>
+          <div class="sign-time">簽核時間<br>2026-04-29 14:30</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">專案</div>
+          <div class="sign-name">李俊宏</div>
+          <div class="sign-time">簽核時間<br>2026-04-29 16:48</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">主委</div>
+          <div class="sign-name">王志明</div>
+          <div class="sign-time">簽核時間<br>2026-04-30 09:15</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">會計</div>
+          <div class="sign-name">張美玲</div>
+          <div class="sign-time">簽核時間<br>2026-04-30 11:32</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
