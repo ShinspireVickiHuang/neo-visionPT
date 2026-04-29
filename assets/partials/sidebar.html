@@ -1,0 +1,77 @@
+<!--
+  共用左側選單
+  新增頁面時：只要改這一份，所有頁面同步
+  data-page-key 標記葉節點，被 sidebar.js 用來自動 highlight 當前頁
+-->
+<nav class="py-4">
+  <ul class="space-y-1">
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="settings" class="w-5 h-5 text-gray-400"></i><span class="text-sm">系統管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="file-text" class="w-5 h-5 text-gray-400"></i><span class="text-sm">每日來電管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i><span class="text-sm">預約管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="home" class="w-5 h-5 text-gray-400"></i><span class="text-sm">賞屋管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="users" class="w-5 h-5 text-gray-400"></i><span class="text-sm">客戶資料管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+
+    <!-- 建案管理 -->
+    <li data-parent="building">
+      <div data-parent-head class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+        <div class="flex items-center gap-3 menu-head"><i data-lucide="building-2" class="w-5 h-5 text-gray-400"></i><span class="text-sm">建案管理</span></div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+      </div>
+      <ul data-children class="bg-gray-50 py-1" style="display:none;">
+        <li class="pl-12 pr-4 py-2 text-sm cursor-pointer" data-page-key="building-list"><a href="building-list.html" class="block w-full">建案管理</a></li>
+        <li class="pl-12 pr-4 py-2 text-sm text-gray-600 hover:text-blue-600 cursor-pointer">表單管理</li>
+        <li class="pl-12 pr-4 py-2 text-sm text-gray-600 hover:text-blue-600 cursor-pointer">戶別管理</li>
+        <li class="pl-12 pr-4 py-2 text-sm text-gray-600 hover:text-blue-600 cursor-pointer">車位管理</li>
+        <li class="pl-12 pr-4 py-2 text-sm text-gray-600 hover:text-blue-600 cursor-pointer">底價管理</li>
+      </ul>
+    </li>
+
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="briefcase" class="w-5 h-5 text-gray-400"></i><span class="text-sm">代銷公司管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="tag" class="w-5 h-5 text-gray-400"></i><span class="text-sm">標籤管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+
+    <!-- 銷控管理 -->
+    <li data-parent="sales">
+      <div data-parent-head class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+        <div class="flex items-center gap-3 menu-head"><i data-lucide="layout-grid" class="w-5 h-5 text-gray-400"></i><span class="text-sm">銷控管理</span></div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+      </div>
+      <ul data-children class="bg-gray-50 py-1" style="display:none;">
+        <li class="pl-12 pr-4 py-2 text-sm cursor-pointer" data-page-key="sales-control"><a href="sales-control.html" class="block w-full">銷控表</a></li>
+        <li class="pl-12 pr-4 py-2 text-sm text-gray-600 hover:text-blue-600 cursor-pointer">退戶管理</li>
+      </ul>
+    </li>
+
+    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+      <div class="flex items-center gap-3"><i data-lucide="bar-chart-2" class="w-5 h-5 text-gray-400"></i><span class="text-sm">報表管理</span></div>
+      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    </li>
+
+    <!-- 佣金收入計算 -->
+    <li data-page-key="commission-list">
+      <a href="commission-list.html" class="px-4 py-3 flex items-center sidebar-item cursor-pointer block">
+        <div class="flex items-center gap-3"><i data-lucide="dollar-sign" class="w-5 h-5 text-gray-400"></i><span class="text-sm">佣金收入計算</span></div>
+      </a>
+    </li>
+  </ul>
+</nav>
