@@ -10,11 +10,12 @@
   // 檔名 → 葉節點 data-page-key 對應
   // 新增頁面時：在這裡多加一筆對應，沒有就用檔名直接對應
   const PAGE_MAP = {
-    'building-list':  'building-list',
-    'building-edit':  'building-list',     // 編輯仍歸建案管理底下
-    'sales-control':  'sales-control',
-    'commission-list':  'commission-list',
-    'commission-print': 'commission-list',
+    'building-list':       'building-list',
+    'building-edit':       'building-list',     // 編輯仍歸建案管理底下
+    'sales-control':       'sales-control',
+    'commission-list':     'commission-list',
+    'commission-print':    'commission-list',
+    'house-viewing-list':  'house-viewing-list',
   };
 
   fetch('assets/partials/sidebar.html?v=' + Date.now())

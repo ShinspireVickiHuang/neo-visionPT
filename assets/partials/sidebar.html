@@ -17,9 +17,15 @@
       <div class="flex items-center gap-3"><i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i><span class="text-sm">預約管理</span></div>
       <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
     </li>
-    <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
-      <div class="flex items-center gap-3"><i data-lucide="home" class="w-5 h-5 text-gray-400"></i><span class="text-sm">賞屋管理</span></div>
-      <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+    <!-- 賞屋管理 -->
+    <li data-parent="house-viewing">
+      <div data-parent-head class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
+        <div class="flex items-center gap-3 menu-head"><i data-lucide="home" class="w-5 h-5 text-gray-400"></i><span class="text-sm">賞屋管理</span></div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+      </div>
+      <ul data-children class="bg-gray-50 py-1" style="display:none;">
+        <li class="pl-12 pr-4 py-2 text-sm cursor-pointer" data-page-key="house-viewing-list"><a href="house-viewing-list.html" class="block w-full">賞屋管理</a></li>
+      </ul>
     </li>
     <li class="px-4 py-3 flex items-center justify-between sidebar-item cursor-pointer">
       <div class="flex items-center gap-3"><i data-lucide="users" class="w-5 h-5 text-gray-400"></i><span class="text-sm">客戶資料管理</span></div>
