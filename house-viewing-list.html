@@ -10,6 +10,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    #drawerPanel {
+      transition: transform 0.25s ease;
+      transform: translateX(100%);
+    }
+    #drawerPanel.open { transform: translateX(0); }
+    #drawerOverlay { transition: opacity 0.2s ease; }
+  </style>
 </head>
 <body class="content-bg font-sans text-gray-700">
 
@@ -29,19 +37,17 @@
   </header>
 
   <div class="flex min-h-[calc(100vh-64px)]">
-    <!-- 左側選單 -->
     <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
 
-    <!-- 主內容 -->
     <main class="flex-1 p-6 overflow-x-hidden">
       <div class="mb-6">
         <h2 class="text-lg font-bold text-gray-700">賞屋管理 / 賞屋管理</h2>
       </div>
 
-      <!-- 搜尋條件 -->
+      <!-- 搜尋條件卡片 -->
       <div class="bg-white rounded shadow-sm p-6 mb-6">
 
-        <!-- 基本搜尋 -->
+        <!-- ① 基本欄位 -->
         <div class="grid grid-cols-2 gap-x-8 gap-y-4">
           <div class="flex items-center gap-3">
             <label class="text-sm font-medium w-28 flex-shrink-0">建案</label>
@@ -79,80 +85,90 @@
           </div>
         </div>
 
-        <!-- 進階搜尋（可折疊） -->
-        <div class="mt-4">
-          <button id="advancedToggle" onclick="toggleAdvanced()" class="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-            <i id="advancedArrow" data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-            <span id="advancedLabel">進階搜尋</span>
-          </button>
-          <div id="advancedPanel" class="hidden mt-4 pt-4 border-t border-gray-100">
-            <div class="grid grid-cols-2 gap-x-8 gap-y-4">
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">資料確認</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                  <option>已確認</option>
-                  <option>待確認</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">異動時間</label>
-                <div class="flex gap-2 flex-1">
-                  <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">轉派業務員</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">是否掃取QR</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                  <option>是</option>
-                  <option>否</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">記事建立區間</label>
-                <div class="flex gap-2 flex-1">
-                  <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">記事備註</label>
-                <input type="text" placeholder="請輸入搜尋關鍵字" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">是否代簽</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                  <option>是</option>
-                  <option>否</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">允許個資</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                  <option>是</option>
-                  <option>否</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-3">
-                <label class="text-sm font-medium w-28 flex-shrink-0">是否填寫詳細地址</label>
-                <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
-                  <option value="" disabled selected>請選擇</option>
-                  <option>是</option>
-                  <option>否</option>
-                </select>
+        <!-- ② 進階固定欄位（分隔線） -->
+        <div class="mt-5 pt-5 border-t border-gray-100">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">進階搜尋</p>
+          <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">資料確認</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+                <option>已確認</option>
+                <option>待確認</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">異動時間</label>
+              <div class="flex gap-2 flex-1">
+                <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
               </div>
             </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">轉派業務員</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">是否掃取QR</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">記事建立區間</label>
+              <div class="flex gap-2 flex-1">
+                <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <input type="date" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">記事備註</label>
+              <input type="text" placeholder="請輸入搜尋關鍵字" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">是否代簽</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">允許個資</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm font-medium w-28 flex-shrink-0">是否填寫詳細地址</label>
+              <select class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-400">
+                <option value="" disabled selected>請選擇</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
           </div>
+        </div>
+
+        <!-- ③ 動態篩選條件 -->
+        <div class="mt-5 pt-5 border-t border-gray-100">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">自訂篩選條件</p>
+            <button onclick="openDrawer()" class="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-500 rounded px-3 py-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增篩選條件
+            </button>
+          </div>
+          <!-- 動態條件顯示區 -->
+          <div id="dynamicFilters" class="grid grid-cols-2 gap-x-8 gap-y-3">
+            <!-- JS 動態插入 -->
+          </div>
+          <p id="emptyHint" class="text-sm text-gray-400 py-2">尚未新增自訂篩選條件</p>
         </div>
 
         <!-- 操作按鈕 -->
@@ -167,7 +183,7 @@
           <button class="flex items-center gap-1 bg-gray-300 text-gray-500 px-4 py-2 rounded text-sm cursor-not-allowed" disabled>
             <i data-lucide="file-input" class="w-4 h-4"></i> 匯入範本
           </button>
-          <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm" onclick="resetForm()">
+          <button onclick="resetAll()" class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm">
             <i data-lucide="eraser" class="w-4 h-4"></i> 重置
           </button>
           <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm">
@@ -188,9 +204,7 @@
           <table class="w-full border-collapse text-sm">
             <thead>
               <tr class="table-header-bg text-white">
-                <th class="p-3 text-center font-medium whitespace-nowrap">
-                  <input type="checkbox" class="w-4 h-4">
-                </th>
+                <th class="p-3 text-center font-medium whitespace-nowrap"><input type="checkbox" class="w-4 h-4"></th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">編號</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">建案</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">賞屋日期</th>
@@ -247,19 +261,158 @@
     </main>
   </div>
 
+  <!-- Drawer 遮罩 -->
+  <div id="drawerOverlay" onclick="closeDrawer()" class="hidden fixed inset-0 bg-black bg-opacity-30 z-40"></div>
+
+  <!-- 自訂篩選 Drawer -->
+  <div id="drawerPanel" class="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b">
+      <h3 class="text-sm font-bold text-gray-800">選擇篩選條件</h3>
+      <button onclick="closeDrawer()" class="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Tag 列表 -->
+    <div class="flex-1 overflow-y-auto px-5 py-4">
+      <p class="text-xs text-gray-400 mb-3">點選要加入的篩選標籤，可複選</p>
+      <div id="tagList" class="flex flex-wrap gap-2">
+        <!-- JS 動態渲染 -->
+      </div>
+    </div>
+
+    <div class="px-5 py-4 border-t">
+      <button onclick="applyTags()" class="w-full bg-[#5d6b7b] hover:bg-[#4a5563] text-white py-2 rounded text-sm">
+        確認套用
+      </button>
+    </div>
+  </div>
+
   <script>
-    function toggleAdvanced() {
-      const panel = document.getElementById('advancedPanel');
-      const arrow = document.getElementById('advancedArrow');
-      const label = document.getElementById('advancedLabel');
-      const isOpen = !panel.classList.contains('hidden');
-      panel.classList.toggle('hidden');
-      arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-      label.textContent = isOpen ? '進階搜尋' : '收合進階搜尋';
+    // 可用的動態標籤與其選項
+    const TAG_OPTIONS = {
+      '職業':       ['上班族', '自營業主', '軍公教', '退休人員', '學生', '其他'],
+      '考慮因素':   ['價格', '地段', '學區', '交通便利', '建商品牌', '格局', '增值潛力'],
+      '需求房數':   ['1房', '2房', '3房', '4房', '4房以上'],
+      '購屋目的':   ['自住', '投資', '換屋', '首購', '養老'],
+      '預算範圍':   ['500萬以下', '500-1000萬', '1000-2000萬', '2000-3000萬', '3000萬以上'],
+      '來源管道':   ['網路廣告', '朋友介紹', '路過', 'DM', '電話', '展場'],
+      '居住縣市':   ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '其他'],
+      '家庭成員':   ['單身', '夫妻', '三口之家', '三代同堂', '其他'],
+    };
+
+    // 目前已加入的 tags
+    let activeTags = new Set();
+    // 暫存 Drawer 內的勾選狀態（確認前不更新）
+    let pendingTags = new Set();
+
+    function openDrawer() {
+      pendingTags = new Set(activeTags);
+      renderTagList();
+      document.getElementById('drawerOverlay').classList.remove('hidden');
+      document.getElementById('drawerPanel').classList.add('open');
+      document.body.style.overflow = 'hidden';
     }
-    function resetForm() {
+
+    function closeDrawer() {
+      document.getElementById('drawerOverlay').classList.add('hidden');
+      document.getElementById('drawerPanel').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function renderTagList() {
+      const container = document.getElementById('tagList');
+      container.innerHTML = '';
+      Object.keys(TAG_OPTIONS).forEach(tag => {
+        const isActive = pendingTags.has(tag);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.tag = tag;
+        btn.className = `px-3 py-1.5 rounded-full text-sm border transition-colors ${
+          isActive
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+        }`;
+        btn.textContent = tag;
+        if (isActive) {
+          const check = document.createElement('span');
+          check.textContent = ' ✓';
+          btn.appendChild(check);
+        }
+        btn.onclick = () => toggleTag(tag);
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleTag(tag) {
+      if (pendingTags.has(tag)) {
+        pendingTags.delete(tag);
+      } else {
+        pendingTags.add(tag);
+      }
+      renderTagList();
+    }
+
+    function applyTags() {
+      // 移除已取消的 tag
+      activeTags.forEach(tag => {
+        if (!pendingTags.has(tag)) {
+          removeFilter(tag, false);
+        }
+      });
+      // 加入新選的 tag
+      pendingTags.forEach(tag => {
+        if (!activeTags.has(tag)) {
+          addFilterRow(tag);
+        }
+      });
+      activeTags = new Set(pendingTags);
+      updateEmptyHint();
+      closeDrawer();
+      lucide.createIcons();
+    }
+
+    function addFilterRow(tag) {
+      const grid = document.getElementById('dynamicFilters');
+      const options = TAG_OPTIONS[tag] || [];
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2';
+      row.dataset.filterTag = tag;
+      row.innerHTML = `
+        <label class="text-sm font-medium w-28 flex-shrink-0 text-gray-700">${tag}</label>
+        <select class="flex-1 border rounded px-3 py-2 text-sm bg-blue-50 border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600">
+          <option value="" disabled selected>請選擇</option>
+          ${options.map(o => `<option>${o}</option>`).join('')}
+        </select>
+        <button type="button" onclick="removeFilter('${tag}')" class="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+      grid.appendChild(row);
+    }
+
+    function removeFilter(tag, updateActive = true) {
+      const el = document.querySelector(`[data-filter-tag="${tag}"]`);
+      if (el) el.remove();
+      if (updateActive) {
+        activeTags.delete(tag);
+        updateEmptyHint();
+      }
+    }
+
+    function updateEmptyHint() {
+      const hint = document.getElementById('emptyHint');
+      hint.style.display = activeTags.size > 0 ? 'none' : 'block';
+    }
+
+    function resetAll() {
+      // 清基本 & 進階固定欄位
       document.querySelectorAll('input[type="text"], input[type="date"]').forEach(el => el.value = '');
       document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+      // 清動態條件
+      activeTags.forEach(tag => removeFilter(tag, false));
+      activeTags.clear();
+      updateEmptyHint();
     }
   </script>
   <script>lucide.createIcons();</script>
