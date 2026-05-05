@@ -15,7 +15,8 @@
     'sales-control':       'sales-control',
     'commission-list':     'commission-list',
     'commission-print':    'commission-list',
-    'house-viewing-list':  'house-viewing-list',
+    'house-viewing-list':   'house-viewing-list',
+    'weekly-report-list':   'weekly-report-list',
   };
 
   fetch('assets/partials/sidebar.html?v=' + Date.now())

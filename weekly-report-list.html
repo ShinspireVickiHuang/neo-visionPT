@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>週報表 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <!-- 頂部 -->
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">報表管理 / 週報表</h2>
+      </div>
+
+      <!-- 搜尋條件 -->
+      <div class="bg-white rounded shadow-sm p-6 mb-6">
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-3">
+            <label class="text-sm font-medium w-10 flex-shrink-0">建案</label>
+            <select class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56">
+              <option>畫世代</option>
+              <option>TheTop</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm">
+            <i data-lucide="search" class="w-4 h-4"></i> 查詢
+          </button>
+          <button class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> 新增
+          </button>
+        </div>
+      </div>
+
+      <!-- 列表 -->
+      <div class="bg-white rounded shadow-sm">
+        <div class="overflow-x-auto p-6">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="table-header-bg text-white">
+                <th class="p-3 text-left font-medium whitespace-nowrap">週期</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">日期(起)</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">日期(迄)</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">總銷金額</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">本週來人</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">本週銷售金額</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">建立時間</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">異動時間</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <tr class="hover:bg-gray-50">
+                <td class="p-3">0107</td>
+                <td class="p-3">2026-01-07</td>
+                <td class="p-3">2026-01-12</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3 whitespace-nowrap">2026-01-07 01:46:59</td>
+                <td class="p-3 whitespace-nowrap">2026-05-05 02:05:10</td>
+                <td class="p-3">
+                  <div class="flex flex-wrap gap-1 justify-center">
+                    <button class="border border-gray-300 text-gray-600 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="edit-3" class="w-3 h-3"></i> 編輯</button>
+                    <button class="border border-red-300 text-red-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-red-50"><i data-lucide="trash-2" class="w-3 h-3"></i> 刪除</button>
+                    <button class="border border-gray-300 text-gray-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="file-text" class="w-3 h-3"></i> 未結帳報表</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="bg-gray-50 hover:bg-gray-100">
+                <td class="p-3">zz</td>
+                <td class="p-3">2023-11-09</td>
+                <td class="p-3">2023-11-10</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3 whitespace-nowrap">2023-11-10 03:12:39</td>
+                <td class="p-3 whitespace-nowrap">2026-05-05 06:11:22</td>
+                <td class="p-3">
+                  <div class="flex flex-wrap gap-1 justify-center">
+                    <button class="border border-gray-300 text-gray-600 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="edit-3" class="w-3 h-3"></i> 編輯</button>
+                    <button class="border border-red-300 text-red-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-red-50"><i data-lucide="trash-2" class="w-3 h-3"></i> 刪除</button>
+                    <button class="border border-gray-300 text-gray-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="file-text" class="w-3 h-3"></i> 未結帳報表</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="p-3">aa</td>
+                <td class="p-3">2023-11-01</td>
+                <td class="p-3">2023-11-10</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3">—</td>
+                <td class="p-3 whitespace-nowrap">2023-11-10 02:06:07</td>
+                <td class="p-3 whitespace-nowrap">2023-11-10 02:06:07</td>
+                <td class="p-3">
+                  <div class="flex flex-wrap gap-1 justify-center">
+                    <button class="border border-gray-300 text-gray-600 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="edit-3" class="w-3 h-3"></i> 編輯</button>
+                    <button class="border border-red-300 text-red-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-red-50"><i data-lucide="trash-2" class="w-3 h-3"></i> 刪除</button>
+                    <button class="border border-gray-300 text-gray-500 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-gray-100"><i data-lucide="file-text" class="w-3 h-3"></i> 未結帳報表</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 分頁 -->
+        <div class="flex justify-center items-center gap-1 py-4 border-t">
+          <button class="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled>«</button>
+          <button class="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled>‹</button>
+          <button class="px-3 py-1 rounded text-sm bg-[#a09080] text-white font-semibold">1</button>
+          <button class="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled>›</button>
+          <button class="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled>»</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>lucide.createIcons();</script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>
