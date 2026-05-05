@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>週報表檢視 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background:#fff; font-family:'Noto Sans TC', sans-serif; color:#3d3530; font-size:13px; }
+    .gold   { color:#b8975a; }
+    .bg-gold{ background:#b8975a; }
+    .bg-beige{ background:#f0ece8; }
+    .th     { background:#e8e4dc; font-weight:600; }
+    .section-gap { margin-top:2rem; }
+    table   { border-collapse:collapse; width:100%; }
+    td, th  { border:1px solid #ddd; padding:6px 10px; text-align:center; }
+    .cat-header td { background:#e0d8ce; font-weight:700; text-align:left; }
+    .sub-header td { background:#f0ece8; font-style:italic; text-align:left; color:#7a6e64; }
+    .total-row td  { background:#f5f2ee; font-weight:700; }
+    @media print { .no-print{ display:none; } }
+  </style>
+</head>
+<body class="p-6 max-w-6xl mx-auto">
+
+  <!-- ── 頂部操作列 ── -->
+  <div class="flex items-center justify-between mb-6 no-print">
+    <div class="flex items-center gap-3 text-sm">
+      <span class="font-semibold">2025-08-03 ~ 2025-08-09</span>
+      <button class="border border-gray-400 rounded px-3 py-1 flex items-center gap-1 hover:bg-gray-50">✏️ 結算</button>
+      <button class="border border-gray-400 rounded px-3 py-1 hover:bg-gray-50">匯出</button>
+      <button class="bg-[#b8975a] text-white rounded px-3 py-1 hover:opacity-90">篩選下方顯示報表</button>
+    </div>
+    <span class="text-sm text-gray-500">案場：畫世代　建立者：admin　更新者：admin</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       Section 1：銷售達成 + 訪客統計
+  ══════════════════════════════════════════ -->
+
+  <div class="grid grid-cols-2 gap-8 mb-6">
+    <!-- 一樓以上住宅 -->
+    <div>
+      <p class="font-bold mb-2">一樓以上住宅</p>
+      <p class="text-sm mb-1">已銷售戶數 <span class="font-semibold">19戶(售)</span> &nbsp; 已銷售 底價 <span class="gold font-bold">32,050萬</span> 成交價 <span class="gold font-bold">38,224萬</span></p>
+      <p class="text-sm mb-1">總可售戶數 <span class="font-semibold">101戶(160,550萬)</span> 剩餘 <span class="font-semibold">82戶</span></p>
+      <p class="text-sm mb-4">溢價金額 <span class="gold font-bold">6,174萬</span> &nbsp; 溢價率 <span class="gold font-bold">19.26%</span></p>
+      <!-- Donut chart SVG -->
+      <div class="flex flex-col items-center">
+        <svg viewBox="0 0 120 120" class="w-44 h-44">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#e8e2d0" stroke-width="18"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#b8975a" stroke-width="18"
+            stroke-dasharray="57.6 231.0" stroke-dashoffset="57.8"
+            transform="rotate(-90 60 60)"/>
+          <text x="60" y="56" text-anchor="middle" font-size="10" font-weight="bold" fill="#3d3530">19.96%</text>
+          <text x="60" y="70" text-anchor="middle" font-size="8" fill="#6b5e54">32,050萬/160,550萬</text>
+        </svg>
+        <div class="flex gap-4 text-xs mt-2">
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-[#b8975a]"></span>已銷售底價</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-[#e8e2d0]"></span>尚未銷售底價</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 車位 -->
+    <div>
+      <p class="font-bold mb-2">車位</p>
+      <p class="text-sm mb-1">已銷售車位 <span class="font-semibold">17位(售)</span> &nbsp; 已銷售 底價 <span class="gold font-bold">5,440萬</span> 成交價 <span class="gold font-bold">6,375萬</span></p>
+      <p class="text-sm mb-1">總可售車位數 <span class="font-semibold">34位(10,880萬)</span> 剩餘 <span class="font-semibold">17車</span></p>
+      <p class="text-sm mb-4">溢價金額 <span class="gold font-bold">935萬</span> &nbsp; 溢價率 <span class="gold font-bold">17.19%</span></p>
+      <div class="flex flex-col items-center">
+        <svg viewBox="0 0 120 120" class="w-44 h-44">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#e8e2d0" stroke-width="18"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#b8975a" stroke-width="18"
+            stroke-dasharray="144.5 144.5" stroke-dashoffset="57.8"
+            transform="rotate(-90 60 60)"/>
+          <text x="60" y="56" text-anchor="middle" font-size="10" font-weight="bold" fill="#3d3530">50.00%</text>
+          <text x="60" y="70" text-anchor="middle" font-size="8" fill="#6b5e54">5,440萬/10,880萬</text>
+        </svg>
+        <div class="flex gap-4 text-xs mt-2">
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-[#b8975a]"></span>已銷售底價</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-[#e8e2d0]"></span>尚未銷售底價</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 合計達成率 -->
+  <div class="bg-[#b8975a] text-white rounded text-center py-2 mb-6 text-sm font-semibold">
+    合計達成率 &nbsp;&nbsp;&nbsp;&nbsp; 37,490萬/171,430萬(21.87%)
+  </div>
+
+  <!-- 本週來人/來電/回訪 -->
+  <table class="mb-2">
+    <thead>
+      <tr>
+        <th class="th">本週來人</th><td>0</td>
+        <th class="th">本週來電</th><td>0</td>
+        <th class="th">本週回訪</th><td>0</td>
+      </tr>
+      <tr>
+        <th class="th">總來人數</th><td>0</td>
+        <th class="th">總來電數</th><td>0</td>
+        <th class="th">總回訪數</th><td>9</td>
+      </tr>
+    </thead>
+  </table>
+
+  <!-- ══════════════════════════════════════════
+       Section 2：每日明細 + 累計 + 本週銷售
+  ══════════════════════════════════════════ -->
+  <div class="section-gap">
+    <!-- 每日來電/來人/回訪 -->
+    <table class="mb-4">
+      <thead>
+        <tr>
+          <th class="th">日期</th>
+          <th class="th">08-03</th><th class="th">08-04</th><th class="th">08-05</th>
+          <th class="th">08-06</th><th class="th">08-07</th><th class="th">08-08</th><th class="th">08-09</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th class="th">來電</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><th class="th">來人</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><th class="th">回訪</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 地主總價 / 銷售累計 / 未售累計 / 溢價金額 -->
+    <table class="mb-4">
+      <thead>
+        <tr>
+          <th class="th" colspan="3">地主 總價</th>
+          <th class="th" colspan="3">銷售累計</th>
+          <th class="th" colspan="3">未售累計</th>
+          <th class="th" colspan="2">溢價金額</th>
+        </tr>
+        <tr>
+          <th class="th">戶數</th><th class="th">車位</th><th class="th">總銷金額</th>
+          <th class="th">戶數</th><th class="th">車位</th><th class="th">銷售金額</th>
+          <th class="th">戶數</th><th class="th">車位</th><th class="th">未售金額</th>
+          <th class="th">房屋金額</th><th class="th">車位金額</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>52</td><td>34</td><td>93,630萬</td><td>5</td><td>18</td><td>14,745萬</td><td>47</td><td>16</td><td>75,075萬 / 5,120萬</td><td>305萬</td><td>1,005萬</td></tr>
+        <tr class="total-row"><td colspan="2">合計</td><td>93,630萬</td><td colspan="2">合計</td><td>14,745萬</td><td colspan="2">合計</td><td>80,195萬</td><td>合計</td><td>1,310萬</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 本週銷售(戶車) -->
+    <p class="font-bold mb-2">本週銷售(戶車)</p>
+    <table class="mb-4">
+      <thead>
+        <tr>
+          <th class="th">戶別</th><th class="th">坪數</th><th class="th">車位</th>
+          <th class="th">總價</th><th class="th">房價</th><th class="th">車價</th>
+          <th class="th">房底</th><th class="th">車底</th><th class="th">溢價</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="total-row"><td colspan="3">合計</td><td>0萬</td><td>0萬</td><td>0萬</td><td>0萬</td><td>0萬</td><td>0萬</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 本週銷售情形 -->
+    <p class="font-bold mb-2">本週銷售情形</p>
+    <table>
+      <thead>
+        <tr>
+          <th class="th" colspan="7">本週</th>
+          <th class="th" colspan="5">累計</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th class="th">銷售</th><td>0</td><td>戶</td><td>0</td><td>車</td><td>0</td><td>萬</td><td>19</td><td>戶</td><td>17</td><td>車</td><td>44,599萬 21.87%</td></tr>
+        <tr><th class="th">補足</th><td>0</td><td>戶</td><td>0</td><td>車</td><td>0</td><td>萬</td><td>17</td><td>戶</td><td>17</td><td>車</td><td>40,233萬 19.49%</td></tr>
+        <tr><th class="th">簽約</th><td>0</td><td>戶</td><td>0</td><td>車</td><td>0</td><td>萬</td><td>15</td><td>戶</td><td>14</td><td>車</td><td>33,033萬 16.55%</td></tr>
+        <tr><th class="th">退戶</th><td>0</td><td>戶</td><td>0</td><td>車</td><td>0</td><td>萬</td><td>2</td><td>戶</td><td>3</td><td>車</td><td>3,330萬 1.87%</td></tr>
+        <tr class="total-row"><td colspan="7">本週銷售溢價 0萬</td><td colspan="5">總溢價 7,109萬</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       Section 3：加購/退車 + 媒體費用表 + 工作重點
+  ══════════════════════════════════════════ -->
+  <div class="section-gap">
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div>
+        <p class="font-bold mb-1">加購車</p>
+        <p class="text-gray-400 text-sm">無資料</p>
+      </div>
+      <div>
+        <p class="font-bold mb-1">退車</p>
+        <p class="text-gray-400 text-sm">無資料</p>
+      </div>
+    </div>
+
+    <!-- 工作重點 -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-gray-100 rounded p-4">
+        <p class="font-semibold mb-2">本週工作重點</p>
+        <p class="text-sm text-gray-600">（請於編輯頁填寫）</p>
+      </div>
+      <div class="bg-gray-100 rounded p-4">
+        <p class="font-semibold mb-2">下週預計工作計畫</p>
+        <p class="text-sm text-gray-600">（請於編輯頁填寫）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       Section 4：銷控表 A棟
+  ══════════════════════════════════════════ -->
+  <div class="section-gap">
+    <div class="flex items-center gap-4 mb-3 text-sm">
+      <span class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full border border-gray-600"></span>售</span>
+      <span class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full border-2 border-gray-600"></span>足</span>
+      <span class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-gray-800"></span>簽</span>
+    </div>
+    <p class="font-semibold text-[#b8975a] mb-1">銷控表</p>
+    <p class="font-bold mb-2">A棟</p>
+    <div class="overflow-x-auto mb-6">
+      <table class="text-xs">
+        <thead>
+          <tr>
+            <th class="th">樓層＼戶別</th>
+            <th class="th">A1</th><th class="th">A2</th><th class="th">A3</th><th class="th">A5</th>
+            <th class="th">成交單價(總成交價÷總坪數)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="th">15F</td><td class="text-red-500">保留</td><td class="text-red-500">保留</td><td>◎</td><td></td><td>3,000萬</td></tr>
+          <tr><td class="th">14F</td><td>●</td><td class="bg-gray-100"></td><td>○</td><td></td><td>166.72萬</td></tr>
+          <tr><td class="th">13F</td><td class="text-red-500">保留</td><td>○</td><td>◎</td><td>●</td><td>2,622萬</td></tr>
+          <tr><td class="th">12F</td><td>●</td><td></td><td></td><td></td><td>89.75萬</td></tr>
+          <tr><td class="th">11F</td><td></td><td>●</td><td></td><td></td><td>2,350萬</td></tr>
+          <tr><td class="th">10F</td><td class="text-red-500">保留</td><td></td><td>●</td><td></td><td>1,240萬</td></tr>
+          <tr><td class="th">9F</td><td></td><td></td><td></td><td>●</td><td>1,400萬</td></tr>
+          <tr><td class="th bg-gray-100">8F</td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td>0萬</td></tr>
+          <tr><td class="th bg-gray-100">7F</td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td>0萬</td></tr>
+          <tr><td class="th">6F</td><td></td><td></td><td></td><td>●</td><td>1,450萬</td></tr>
+          <tr><td class="th">5F</td><td>●</td><td>●</td><td></td><td></td><td>1,750萬</td></tr>
+          <tr><td class="th">4F</td><td></td><td></td><td></td><td></td><td>33,321萬</td></tr>
+          <tr><td class="th">3F</td><td></td><td></td><td></td><td>●</td><td>1,488萬</td></tr>
+          <tr><td class="th">2F</td><td></td><td></td><td></td><td></td><td>33,321萬</td></tr>
+          <tr><td class="th">1F</td><td></td><td></td><td></td><td></td><td>33,321萬</td></tr>
+          <tr class="total-row"><td>成交單價</td><td>97.77萬</td><td>1,638.67萬</td><td>2,560萬</td><td>1,959.5萬</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- B棟 -->
+    <p class="font-bold mb-2">B棟</p>
+    <div class="overflow-x-auto mb-6">
+      <table class="text-xs">
+        <thead>
+          <tr>
+            <th class="th">樓層＼戶別</th>
+            <th class="th">B1</th><th class="th">B2</th><th class="th">B3</th><th class="th">B5</th>
+            <th class="th">成交單價(總成交價÷總坪數)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="th">15F</td><td>●</td><td class="bg-gray-100"></td><td></td><td></td><td>46萬</td></tr>
+          <tr><td class="th">14F</td><td></td><td class="bg-gray-100"></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">13F</td><td></td><td></td><td>●</td><td></td><td>45.6萬</td></tr>
+          <tr><td class="th">12F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">11F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">10F</td><td></td><td>●</td><td>●</td><td>●</td><td>48.13萬</td></tr>
+          <tr><td class="th">9F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">8F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">7F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">6F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th bg-gray-100">5F</td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">4F</td><td></td><td></td><td></td><td></td><td>45.2萬</td></tr>
+          <tr><td class="th bg-gray-100">3F</td><td class="bg-gray-100"></td><td class="bg-gray-100"></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">2F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr><td class="th">1F</td><td></td><td></td><td></td><td></td><td>0萬</td></tr>
+          <tr class="total-row"><td>成交單價</td><td>46萬</td><td>48萬</td><td>46.8萬</td><td>48.33萬</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       Section 6：車位
+  ══════════════════════════════════════════ -->
+  <div class="section-gap">
+    <div class="flex items-center gap-3 mb-4">
+      <p class="font-bold">車位</p>
+      <select class="border rounded px-2 py-1 text-xs"><option>10</option></select>
+    </div>
+
+    <!-- B1 -->
+    <div class="border rounded mb-4">
+      <div class="th text-center py-2 font-bold">B1</div>
+      <div class="text-center py-1 text-xs border-b">可售：16　已售：7　未售：9</div>
+      <table class="text-xs">
+        <thead>
+          <tr>
+            <th class="th">編號:21</th><th class="th">編號:22</th><th class="th">編號:23</th><th class="th">編號:24</th><th class="th">編號:25</th>
+            <th class="th">編號:26</th><th class="th">編號:27</th><th class="th">編號:28</th><th class="th">編號:29</th><th class="th">編號:30</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td></td><td></td><td></td><td>A3-10F</td><td>B2-10F</td><td>B3-10F</td><td></td><td></td><td>A5-9F</td></tr>
+          <tr>
+            <th class="th">編號:31</th><th class="th">編號:32</th><th class="th">編號:33</th><th class="th">編號:34</th><th class="th">編號:35</th>
+            <th class="th">編號:36</th><th class="th">編號:37</th><th class="th">編號:38</th><th class="th">編號:39</th><th class="th">編號:40</th>
+          </tr>
+          <tr><td>A5-9F</td><td>A3-13F</td><td>A5-13F</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- B2 -->
+    <div class="border rounded mb-6">
+      <div class="th text-center py-2 font-bold">B2</div>
+      <div class="text-center py-1 text-xs border-b">可售：18　已售：11　未售：7</div>
+      <table class="text-xs">
+        <thead>
+          <tr>
+            <th class="th">編號:1</th><th class="th">編號:10</th><th class="th">編號:11</th><th class="th">編號:12</th><th class="th">編號:13</th>
+            <th class="th">編號:14</th><th class="th">編號:15</th><th class="th">編號:16</th><th class="th">編號:17</th><th class="th">編號:18</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td>A5-3F</td><td>A1-12F</td><td>A1-12F</td><td></td><td>A1-14F</td><td></td><td></td><td></td><td>A2-11F</td></tr>
+          <tr>
+            <th class="th">編號:19</th><th class="th">編號:2</th><th class="th">編號:20</th><th class="th">編號:3</th><th class="th">編號:4</th>
+            <th class="th">編號:5</th><th class="th">編號:6</th><th class="th">編號:7</th><th class="th">編號:8</th><th class="th">編號:9</th>
+          </tr>
+          <tr><td></td><td></td><td>A1-5F</td><td>A5-6F</td><td></td><td>A3-15F</td><td>A3-15F</td><td>B1-15F</td><td>B1-15F</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 匯出 -->
+    <div class="flex justify-center mt-4">
+      <button class="bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-8 py-2 rounded text-sm">匯出</button>
+    </div>
+  </div>
+
+</body>
+</html>

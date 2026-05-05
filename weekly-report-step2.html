@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>媒體執行總表 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">
+          <a href="media-cost-list.html" class="hover:text-blue-600">報表管理</a> /
+          <a href="media-cost-list.html" class="hover:text-blue-600">媒體執行總表(來人暨成交平均媒體花費)</a> /
+          <span id="pageMode">新增</span>
+        </h2>
+      </div>
+
+      <!-- 建案 / 年度 / 月份 / 週期 資訊列 -->
+      <div class="bg-white rounded shadow-sm max-w-3xl mx-auto mb-4 px-6 py-4 text-sm">
+
+        <!-- 新增模式：可選填 -->
+        <div id="infoEditable" class="flex flex-wrap items-center gap-5">
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 flex-shrink-0">建案 <span class="text-red-500">*</span></label>
+            <input id="infoBldg" type="text" placeholder="請輸入建案名稱"
+              class="border rounded px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 flex-shrink-0">年度 <span class="text-red-500">*</span></label>
+            <select id="infoYear" class="border rounded px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-28">
+              <option value="">請選擇</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 flex-shrink-0">月份 <span class="text-red-500">*</span></label>
+            <select id="infoMonth" class="border rounded px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-24">
+              <option value="">請選擇</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+              <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+              <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+              <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 flex-shrink-0">週期 <span class="text-red-500">*</span></label>
+            <select id="infoPeriod" class="border rounded px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36">
+              <option value="">請選擇</option>
+              <option value="0107">0107</option>
+              <option value="zz">zz</option>
+              <option value="aa">aa</option>
+            </select>
+          </div>
+        </div>
+
+
+      </div>
+
+      <div class="bg-white rounded shadow-sm max-w-3xl mx-auto">
+        <div class="px-6 py-4 border-b font-bold text-base">媒體執行總表(來人暨成交平均媒體花費)</div>
+
+        <div class="px-6 py-5 space-y-2 text-sm">
+
+          <!-- ── 開案費用 ── -->
+          <div class="pt-2 pb-1">
+            <span class="text-xs font-bold text-white bg-[#8d7d70] px-3 py-1 rounded">開案費用</span>
+          </div>
+
+          <!-- 其他 -->
+          <p class="text-xs text-gray-400 font-medium pt-2">其他</p>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>接待中心</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>電費保證金</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>模型</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>攝影費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>企劃費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>電子裱版</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>平面圖(墨線)</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>透視圖</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+          <!-- 實品屋 -->
+          <p class="text-xs text-gray-400 font-medium pt-3">實品屋</p>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>實品屋</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>實品屋損失</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+          <!-- ── 固定費用 ── -->
+          <div class="pt-4 pb-1">
+            <span class="text-xs font-bold text-white bg-[#8d7d70] px-3 py-1 rounded">固定費用</span>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>接待中心.租地.停車場租金</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>投射燈</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>羅馬旗</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>冷氣費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>保全費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>補充保費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>電話費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>水電費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>定點租金</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>餐費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>薪資</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>管銷費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+          <!-- ── 媒體費用 ── -->
+          <div class="pt-4 pb-1">
+            <span class="text-xs font-bold text-white bg-[#8d7d70] px-3 py-1 rounded">媒體費用</span>
+          </div>
+
+          <!-- 大眾 -->
+          <p class="text-xs text-gray-400 font-medium pt-2">大眾</p>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>CF製作費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>CF播放費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>RD播放費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>報紙廣告費(NP)</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>雜誌廣告費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>網路廣告費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+          <!-- 小眾 -->
+          <p class="text-xs text-gray-400 font-medium pt-3">小眾</p>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>竹架</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>帆布看板</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>宣傳車及定點車</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>公車廣告費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>印刷品</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>指示牌</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>派夾報</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+          <!-- ── 非固定費用 ── -->
+          <div class="pt-4 pb-1">
+            <span class="text-xs font-bold text-white bg-[#8d7d70] px-3 py-1 rounded">非固定費用</span>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>制服費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>介紹費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>贈品</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>其他租金(接駁車.宿舍)</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>代言人/活動費</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>業主扣款</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>雜支(打工.工讀生.SP.零用金)</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>獎金</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-[200px_1fr] gap-3 items-center">
+            <label>稅金</label>
+            <div class="flex items-center border rounded bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500">
+              <input type="number" value="0" class="flex-1 px-3 py-2 bg-transparent focus:outline-none text-sm w-0 min-w-0">
+              <span class="px-3 py-2 text-gray-400 text-sm border-l">元</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 底部按鈕 -->
+        <div class="flex justify-center gap-3 px-6 py-5 border-t">
+          <a href="media-cost-list.html"
+            class="px-6 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm">取消</a>
+          <a href="media-cost-list.html"
+            class="px-6 py-2 rounded bg-[#5d6b7b] hover:bg-[#4a5563] text-white text-sm">確定</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(location.search);
+    if (p.get('mode') === 'edit') {
+      document.getElementById('pageMode').textContent = p.get('frozen') === '1' ? '檢視' : '編輯';
+    }
+    // 新增 & 編輯都預填 URL 帶入的值
+    if (p.get('building')) document.getElementById('infoBldg').value   = p.get('building');
+    if (p.get('year'))     document.getElementById('infoYear').value   = p.get('year');
+    if (p.get('month'))    document.getElementById('infoMonth').value  = p.get('month');
+    if (p.get('period'))   document.getElementById('infoPeriod').value = p.get('period');
+
+    // 凍結模式：停用所有欄位，隱藏確定按鈕
+    if (p.get('frozen') === '1') {
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.disabled = true;
+        el.classList.add('opacity-70', 'cursor-not-allowed');
+      });
+      // 插入凍結提示列
+      const banner = document.createElement('div');
+      banner.className = 'bg-orange-50 border border-orange-200 text-orange-700 text-sm px-4 py-2 rounded mb-4 max-w-3xl mx-auto flex items-center gap-2';
+      banner.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 此資料已凍結，僅供檢視，無法修改。';
+      document.querySelector('main').insertBefore(banner, document.querySelector('.bg-white.rounded.shadow-sm.max-w-3xl'));
+      // 隱藏確定按鈕，保留返回
+      document.querySelectorAll('.flex.justify-center.gap-3 a').forEach((a, i) => {
+        if (i === 1) a.style.display = 'none'; // 確定
+        else a.textContent = '返回';
+      });
+    }
+  </script>
+  <script>lucide.createIcons();</script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>
