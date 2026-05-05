@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>預估費用明細表 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .cat-cell {
+      background: #e8edf2;
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+      vertical-align: middle;
+      border: 1px solid #d1d5db;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    .sub-cell {
+      background: #f1f5f9;
+      text-align: center;
+      font-size: 12px;
+      vertical-align: middle;
+      border: 1px solid #d1d5db;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .data-cell {
+      border: 1px solid #d1d5db;
+      padding: 3px 6px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    .sum-cell {
+      border: 1px solid #d1d5db;
+      padding: 3px 10px;
+      font-size: 13px;
+      vertical-align: middle;
+      text-align: right;
+      background: #fefce8;
+      font-weight: 500;
+    }
+    #costTable input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    #costTable input[type="number"]::-webkit-inner-spin-button,
+    #costTable input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
+  </style>
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <main class="flex-1 p-6 overflow-x-hidden">
+
+      <div class="mb-4">
+        <h2 class="text-lg font-bold text-gray-700">
+          <a href="estimate-cost-list.html" class="hover:text-blue-600">報表管理</a> /
+          <a href="estimate-cost-list.html" class="hover:text-blue-600">預估費用明細表</a> /
+          <span id="modeTitle">檢視</span>
+        </h2>
+      </div>
+
+      <!-- 建案資訊 + 統計期間 + 當月銷售金額 -->
+      <div class="bg-white rounded shadow-sm p-4 mb-4">
+        <div class="flex flex-wrap gap-x-8 gap-y-3 items-center text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500 font-medium">建案</span>
+            <span class="font-bold text-gray-800" id="infoBldg">—</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500 font-medium">年度</span>
+            <span class="font-bold text-gray-800" id="infoYear">—</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500 font-medium">月份</span>
+            <span class="font-bold text-gray-800" id="infoMonth">—</span>
+          </div>
+          <div class="w-px h-5 bg-gray-300 hidden sm:block"></div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 font-medium whitespace-nowrap">統計期間(起)</label>
+            <input type="date" id="periodStart"
+              class="border rounded px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 font-medium whitespace-nowrap">統計期間(迄)</label>
+            <input type="date" id="periodEnd"
+              class="border rounded px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-gray-500 font-medium whitespace-nowrap">當月銷售金額(元)</label>
+            <input type="number" id="salesAmt" readonly title="由銷控表銷售資料自動帶入"
+              class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-sm text-right w-36 text-blue-700 cursor-not-allowed outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- 來源說明 -->
+      <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm text-blue-700 flex items-center gap-2">
+        <i data-lucide="info" class="w-4 h-4 flex-shrink-0"></i>
+        <span>所有項目的當月金額自動帶入<strong>媒體執行總表</strong>當月累計資料；當月銷售金額來自<strong>銷控表</strong>銷售資料，均不可手動修改。</span>
+      </div>
+
+      <!-- 費用明細主表 -->
+      <div class="bg-white rounded shadow-sm mb-4">
+        <div class="overflow-x-auto p-4">
+          <table id="costTable" class="border-collapse text-sm" style="width:100%; min-width:680px;">
+            <thead>
+              <tr class="table-header-bg text-white">
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">一級分類</th>
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">二級分類</th>
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">編號</th>
+                <th class="p-2 text-left font-medium border border-white/20">費用項目</th>
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">前期累計金額(元)</th>
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">當月金額(元)</th>
+                <th class="p-2 text-center font-medium whitespace-nowrap border border-white/20">全案累計金額(元)</th>
+              </tr>
+            </thead>
+            <tbody id="costTbody"></tbody>
+            <tfoot>
+              <tr style="background:#e8edf2;">
+                <td colspan="4" class="data-cell text-center font-bold">合計</td>
+                <td class="data-cell text-right font-bold" id="totalPrev">0</td>
+                <td class="data-cell text-right font-bold" id="totalCurr">0</td>
+                <td class="sum-cell font-bold" id="totalSum">0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 新增模式：儲存 + 取消 -->
+      <div id="btnNew" class="hidden flex justify-center gap-3 pb-8">
+        <a href="estimate-cost-list.html"
+           class="px-8 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm">取消</a>
+        <button onclick="saveCost()"
+           class="px-8 py-2 rounded bg-[#5d6b7b] hover:bg-[#4a5563] text-white text-sm">儲存</button>
+      </div>
+
+      <!-- 檢視模式：返回列表頁 -->
+      <div id="btnView" class="hidden flex justify-center pb-8">
+        <a href="estimate-cost-list.html"
+           class="px-8 py-2 rounded bg-[#5d6b7b] hover:bg-[#4a5563] text-white text-sm flex items-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表頁
+        </a>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // 費用項目定義
+    // cat / catSpan: 一級分類及其跨行數（只在該分類第一行有）
+    // subNull: true 表示此分類無二級分類，cat td 用 colspan=2
+    // sub / subSpan: 二級分類及其跨行數（只在該子分類第一行有）
+    // isMedia: 媒體費用項目（當月金額由媒體執行總表帶入，唯讀）
+    const ITEMS = [
+      { cat:'開案費用', catSpan:10, sub:'其他',   subSpan:8, no:1,  name:'接待中心',                   demoP:2500000, demoC:0 },
+      { no:2,  name:'電費保證金',                                                                       demoP:30000,   demoC:0 },
+      { no:3,  name:'模型',                                                                             demoP:350000,  demoC:0 },
+      { no:4,  name:'攝影費',                                                                           demoP:120000,  demoC:0 },
+      { no:5,  name:'企劃費',                                                                           demoP:200000,  demoC:50000 },
+      { no:6,  name:'電子裱版',                                                                         demoP:45000,   demoC:0 },
+      { no:7,  name:'平面圖',                                                                           demoP:80000,   demoC:0 },
+      { no:8,  name:'透視圖',                                                                           demoP:120000,  demoC:0 },
+      { sub:'實品屋', subSpan:2, no:9,  name:'實品屋',                                                  demoP:1800000, demoC:0 },
+      { no:10, name:'實品屋損失',                                                                       demoP:0,       demoC:0 },
+
+      { cat:'固定費用', catSpan:9, subNull:true, no:11, name:'接待中心租地停車場租金',                     demoP:480000,  demoC:80000 },
+      { no:12, name:'投射燈',                                                                           demoP:15000,   demoC:0 },
+      { no:13, name:'羅馬旗',                                                                           demoP:12000,   demoC:2000 },
+      { no:14, name:'冷氣費',                                                                           demoP:36000,   demoC:6000 },
+      { no:15, name:'保全費',                                                                           demoP:48000,   demoC:8000 },
+      { no:16, name:'補充保費',                                                                         demoP:9600,    demoC:1600 },
+      { no:17, name:'電話費',                                                                           demoP:6000,    demoC:1000 },
+      { no:18, name:'水電費',                                                                           demoP:18000,   demoC:3000 },
+      { no:19, name:'定點租金',                                                                         demoP:120000,  demoC:20000 },
+
+      { cat:'媒體費用', catSpan:13, sub:'大眾', subSpan:6, no:20, name:'CF製作費',       isMedia:true,  demoP:850000,  demoC:0 },
+      { no:21, name:'CF播放費',           isMedia:true,                                                demoP:480000,  demoC:120000 },
+      { no:22, name:'RD播放費',           isMedia:true,                                                demoP:96000,   demoC:24000 },
+      { no:23, name:'報紙廣告費(NP)',      isMedia:true,                                                demoP:240000,  demoC:60000 },
+      { no:24, name:'雜誌廣告費',          isMedia:true,                                               demoP:120000,  demoC:30000 },
+      { no:25, name:'網路廣告費',          isMedia:true,                                               demoP:360000,  demoC:90000 },
+      { sub:'小眾', subSpan:7, no:26, name:'竹架',             isMedia:true,                           demoP:45000,   demoC:0 },
+      { no:27, name:'帆布看板',            isMedia:true,                                               demoP:36000,   demoC:0 },
+      { no:28, name:'宣傳車及定點車',      isMedia:true,                                               demoP:72000,   demoC:18000 },
+      { no:29, name:'公車廣告費',          isMedia:true,                                               demoP:180000,  demoC:45000 },
+      { no:30, name:'印刷品',              isMedia:true,                                               demoP:96000,   demoC:24000 },
+      { no:31, name:'指示牌',              isMedia:true,                                               demoP:30000,   demoC:0 },
+      { no:32, name:'派夾報',              isMedia:true,                                               demoP:24000,   demoC:6000 },
+
+      { cat:'非固定費用(外)', catSpan:7, subNull:true, no:33, name:'制服費',                             demoP:18000,   demoC:0 },
+      { no:34, name:'介紹費',                                                                           demoP:240000,  demoC:60000 },
+      { no:35, name:'贈品',                                                                             demoP:48000,   demoC:0 },
+      { no:36, name:'其他租金(接駁車.宿舍)',                                                              demoP:36000,   demoC:6000 },
+      { no:37, name:'代言人/活動費',                                                                    demoP:0,       demoC:0 },
+      { no:38, name:'業主扣款',                                                                         demoP:0,       demoC:0 },
+      { no:39, name:'雜支(打工.工讀生.SP.零用金)',                                                        demoP:120000,  demoC:20000 },
+
+      { cat:'內部費用', catSpan:5, sub:'固定費用',   subSpan:3, no:40, name:'餐費',                      demoP:48000,   demoC:8000 },
+      { no:41, name:'薪資',                                                                             demoP:720000,  demoC:120000 },
+      { no:42, name:'管銷費',                                                                           demoP:360000,  demoC:60000 },
+      { sub:'非固定費用', subSpan:2, no:43, name:'獎金',                                                 demoP:0,       demoC:0 },
+      { no:44, name:'稅金',                                                                             demoP:36000,   demoC:6000 },
+    ];
+
+    // 讀取 URL 參數
+    const params   = new URLSearchParams(location.search);
+    const building = params.get('building') || '';
+    const year     = params.get('year')     || '';
+    const month    = params.get('month')    || '';
+    const mode     = params.get('mode')     || 'view';
+    const period   = params.get('period')   || '';
+    const dateFrom = params.get('dateFrom') || '';
+    const dateTo   = params.get('dateTo')   || '';
+    const salesAmt = params.get('salesAmt') || '';
+
+    document.getElementById('infoBldg').textContent  = building || '—';
+    document.getElementById('infoYear').textContent   = year     || '—';
+    document.getElementById('infoMonth').textContent  = month ? month + '月' : '—';
+    document.getElementById('modeTitle').textContent  = mode === 'new' ? '新增' : '檢視';
+
+    // 顯示對應按鈕組
+    if (mode === 'new') {
+      document.getElementById('btnNew').classList.remove('hidden');
+    } else {
+      document.getElementById('btnView').classList.remove('hidden');
+    }
+
+    // 統計期間(起)：優先用 dateFrom，否則由 period + year + month 推算
+    if (dateFrom) {
+      document.getElementById('periodStart').value = dateFrom;
+    } else if (period && year && month) {
+      const mm = month.padStart(2,'0');
+      const dd = period.slice(2).padStart(2,'0');
+      document.getElementById('periodStart').value = `${year}-${mm}-${dd}`;
+    }
+
+    // 統計期間(迄)：優先用 dateTo，否則推算為起日 + 5 天
+    if (dateTo) {
+      document.getElementById('periodEnd').value = dateTo;
+    } else {
+      const startVal = document.getElementById('periodStart').value;
+      if (startVal) {
+        const d = new Date(startVal);
+        d.setDate(d.getDate() + 5);
+        document.getElementById('periodEnd').value = d.toISOString().slice(0,10);
+      }
+    }
+
+    // 當月銷售金額：由系統帶入（列表傳入或 demo 示意值）
+    document.getElementById('salesAmt').value = salesAmt || 12500000;
+
+    // 渲染費用表
+    function renderTable() {
+      const tbody = document.getElementById('costTbody');
+      ITEMS.forEach(item => {
+        const tr = document.createElement('tr');
+        if (item.isMedia) tr.classList.add('media-row');
+
+        // 一級分類
+        if (item.cat !== undefined) {
+          const td = document.createElement('td');
+          td.rowSpan = item.catSpan;
+          td.colSpan = item.subNull ? 2 : 1;
+          td.textContent = item.cat;
+          td.className = 'cat-cell';
+          tr.appendChild(td);
+        }
+
+        // 二級分類
+        if (item.sub !== undefined) {
+          const td = document.createElement('td');
+          td.rowSpan = item.subSpan;
+          td.textContent = item.sub;
+          td.className = 'sub-cell';
+          tr.appendChild(td);
+        }
+
+        // 編號
+        const tdNo = document.createElement('td');
+        tdNo.textContent = item.no;
+        tdNo.className = 'data-cell text-center text-gray-400';
+        tr.appendChild(tdNo);
+
+        // 費用項目名稱
+        const tdName = document.createElement('td');
+        tdName.textContent = item.name;
+        tdName.className = 'data-cell';
+        tr.appendChild(tdName);
+
+        // 前期累計金額（唯讀）
+        const tdPrev = document.createElement('td');
+        tdPrev.className = 'data-cell';
+        const prevInp = document.createElement('input');
+        prevInp.type = 'number';
+        prevInp.id = `prev-${item.no}`;
+        prevInp.value = item.demoP ?? 0;
+        prevInp.readOnly = true;
+        prevInp.style.cssText = 'width:100%;min-width:110px;text-align:right;background:#f1f5f9;border-radius:4px;padding:2px 8px;font-size:13px;outline:none;cursor:not-allowed;color:#6b7280;';
+        tdPrev.appendChild(prevInp);
+        tr.appendChild(tdPrev);
+
+        // 當月金額（全部唯讀，由媒體執行總表帶入）
+        const tdCurr = document.createElement('td');
+        tdCurr.className = 'data-cell';
+        const currInp = document.createElement('input');
+        currInp.type = 'number';
+        currInp.id = `curr-${item.no}`;
+        currInp.value = item.demoC ?? 0;
+        currInp.readOnly = true;
+        currInp.title = '由媒體執行總表自動帶入';
+        currInp.style.cssText = 'width:100%;min-width:110px;text-align:right;border-radius:4px;padding:2px 8px;font-size:13px;background:#dbeafe;color:#1d4ed8;cursor:not-allowed;outline:none;border:1px solid #bfdbfe;';
+        tdCurr.appendChild(currInp);
+        tr.appendChild(tdCurr);
+
+        // 全案累計金額（自動計算）
+        const tdSum = document.createElement('td');
+        tdSum.id = `sum-${item.no}`;
+        tdSum.className = 'sum-cell';
+        tdSum.textContent = (item.demoP + item.demoC).toLocaleString();
+        tr.appendChild(tdSum);
+
+        tbody.appendChild(tr);
+      });
+      updateTotals();
+    }
+
+    function updateRow(no) {
+      const prev = parseFloat(document.getElementById(`prev-${no}`).value) || 0;
+      const curr = parseFloat(document.getElementById(`curr-${no}`).value) || 0;
+      const sumEl = document.getElementById(`sum-${no}`);
+      sumEl.textContent = (prev + curr).toLocaleString();
+      updateTotals();
+    }
+
+    function updateTotals() {
+      let tp = 0, tc = 0;
+      ITEMS.forEach(item => {
+        tp += parseFloat(document.getElementById(`prev-${item.no}`)?.value) || 0;
+        tc += parseFloat(document.getElementById(`curr-${item.no}`)?.value) || 0;
+      });
+      document.getElementById('totalPrev').textContent = tp.toLocaleString();
+      document.getElementById('totalCurr').textContent = tc.toLocaleString();
+      document.getElementById('totalSum').textContent  = (tp + tc).toLocaleString();
+    }
+
+    function saveCost() {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;top:80px;right:24px;z-index:100000;background:#10b981;color:#fff;padding:14px 20px;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,.15);font-size:14px;display:flex;align-items:center;gap:10px;';
+      t.innerHTML = '<span style="width:22px;height:22px;background:rgba(255,255,255,0.2);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;">✓</span><span>已儲存預估費用明細表</span>';
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.transition='opacity .4s'; t.style.opacity='0'; }, 2600);
+      setTimeout(() => { t.remove(); location.href = 'estimate-cost-list.html'; }, 3000);
+    }
+
+    renderTable();
+  </script>
+  <script>lucide.createIcons();</script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>

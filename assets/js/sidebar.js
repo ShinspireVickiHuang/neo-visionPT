@@ -17,6 +17,10 @@
     'commission-print':    'commission-list',
     'house-viewing-list':   'house-viewing-list',
     'weekly-report-list':   'weekly-report-list',
+    'media-cost-list':      'media-cost-list',
+    'media-cost-monthly':   'media-cost-list',
+    'estimate-cost-list':   'estimate-cost-list',
+    'estimate-cost-edit':   'estimate-cost-list',
   };
 
   fetch('assets/partials/sidebar.html?v=' + Date.now())

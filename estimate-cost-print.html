@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>預估費用明細表 - 列印 / 匯出 PDF</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: #1f2937;
+      background: #f1f5f9;
+    }
+    .sheet {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 36px 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin: 0 0 4px;
+      letter-spacing: 4px;
+    }
+    .meta {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .meta span { margin: 0 10px; }
+    .meta2 {
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .meta2 span { margin: 0 10px; }
+    .note {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 12px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #d1d5db; font-size: 12px; vertical-align: middle; }
+    thead th {
+      background: #374151;
+      color: #fff;
+      padding: 6px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .cat-cell {
+      background: #e8edf2;
+      text-align: center;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .sub-cell {
+      background: #f1f5f9;
+      text-align: center;
+      font-size: 12px;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .data-cell {
+      padding: 3px 6px;
+      font-size: 12px;
+    }
+    .num-cell {
+      padding: 3px 8px;
+      font-size: 12px;
+      text-align: right;
+      background: #fefce8;
+    }
+    .total-row td {
+      background: #e8edf2;
+      font-weight: bold;
+      padding: 5px 8px;
+    }
+    .total-row .num-cell { background: #d4edda; }
+
+    /* 簽核區 */
+    .signoff {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 2px solid #374151;
+    }
+    .signoff h2 {
+      font-size: 14px;
+      margin: 0 0 14px;
+      color: #374151;
+      letter-spacing: 2px;
+    }
+    .sign-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .sign-card {
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 10px 12px 14px;
+      background: #fafafa;
+    }
+    .sign-role {
+      font-weight: bold;
+      color: #374151;
+      font-size: 13px;
+      border-bottom: 1px dashed #d1d5db;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .sign-name {
+      font-size: 16px;
+      color: #111827;
+      min-height: 24px;
+      letter-spacing: 1px;
+      font-family: "標楷體", "DFKai-SB", serif;
+    }
+    .sign-time {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 6px;
+    }
+
+    /* 工具列 */
+    .toolbar {
+      max-width: 960px;
+      margin: 0 auto 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar a { color: #6b7280; text-decoration: none; font-size: 13px; }
+    .toolbar a:hover { color: #2563eb; }
+    .btn-print {
+      background: #a09080;
+      color: #fff;
+      border: 0;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-print:hover { background: #8d7d70; }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .toolbar { display: none; }
+      .sheet { box-shadow: none; padding: 0; max-width: none; }
+    }
+    @page { size: A4; margin: 1.5cm; }
+  </style>
+</head>
+<body>
+
+  <!-- 工具列 -->
+  <div class="toolbar">
+    <a href="estimate-cost-list.html">← 返回預估費用明細表</a>
+    <button class="btn-print" onclick="window.print()">匯出 PDF / 列印</button>
+  </div>
+
+  <!-- 單據 -->
+  <div class="sheet">
+    <h1>預估費用明細表</h1>
+    <div class="meta">
+      <span>建案：<strong id="pBldg">—</strong></span>
+      <span>年度：<strong id="pYear">—</strong></span>
+      <span>月份：<strong id="pMonth">—</strong></span>
+      <span>週期：<strong id="pPeriod">—</strong></span>
+    </div>
+    <div class="meta2">
+      <span>統計期間：<strong id="pDateFrom">—</strong> ～ <strong id="pDateTo">—</strong></span>
+      <span>當月銷售金額：<strong id="pSalesAmt">—</strong> 元</span>
+    </div>
+
+    <p class="note">※ 所有項目當月金額自動帶入媒體執行總表當月累計資料；當月銷售金額來自銷控表銷售資料。</p>
+
+    <!-- 費用明細表 -->
+    <table id="printTable">
+      <thead>
+        <tr>
+          <th>一級分類</th>
+          <th>二級分類</th>
+          <th>編號</th>
+          <th style="text-align:left;">費用項目</th>
+          <th>前期累計金額(元)</th>
+          <th>當月金額(元)</th>
+          <th>全案累計金額(元)</th>
+        </tr>
+      </thead>
+      <tbody id="printTbody"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="4" style="text-align:center;">合計</td>
+          <td class="num-cell" id="ptotalPrev">0</td>
+          <td class="num-cell" id="ptotalCurr">0</td>
+          <td class="num-cell" id="ptotalSum">0</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- 簽核區 -->
+    <div class="signoff">
+      <h2>簽核紀錄</h2>
+      <div class="sign-grid">
+        <div class="sign-card">
+          <div class="sign-role">申請人</div>
+          <div class="sign-name">林美君</div>
+          <div class="sign-time">簽核時間<br>2025-01-29 10:15:22</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">專案</div>
+          <div class="sign-name">陳志豪</div>
+          <div class="sign-time">簽核時間<br>2025-01-29 14:30:08</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">主委</div>
+          <div class="sign-name">王建國</div>
+          <div class="sign-time">簽核時間<br>2025-01-30 09:05:44</div>
+        </div>
+        <div class="sign-card">
+          <div class="sign-role">會計</div>
+          <div class="sign-name">張雅惠</div>
+          <div class="sign-time">簽核時間<br>2025-01-30 11:22:37</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ITEMS = [
+      { cat:'開案費用', catSpan:10, sub:'其他',   subSpan:8, no:1,  name:'接待中心',                demoP:2500000, demoC:0 },
+      { no:2,  name:'電費保證金',                                                                    demoP:30000,   demoC:0 },
+      { no:3,  name:'模型',                                                                          demoP:350000,  demoC:0 },
+      { no:4,  name:'攝影費',                                                                        demoP:120000,  demoC:0 },
+      { no:5,  name:'企劃費',                                                                        demoP:200000,  demoC:50000 },
+      { no:6,  name:'電子裱版',                                                                      demoP:45000,   demoC:0 },
+      { no:7,  name:'平面圖',                                                                        demoP:80000,   demoC:0 },
+      { no:8,  name:'透視圖',                                                                        demoP:120000,  demoC:0 },
+      { sub:'實品屋', subSpan:2, no:9,  name:'實品屋',                                               demoP:1800000, demoC:0 },
+      { no:10, name:'實品屋損失',                                                                    demoP:0,       demoC:0 },
+      { cat:'固定費用', catSpan:9, subNull:true, no:11, name:'接待中心租地停車場租金',                  demoP:480000,  demoC:80000 },
+      { no:12, name:'投射燈',                                                                        demoP:15000,   demoC:0 },
+      { no:13, name:'羅馬旗',                                                                        demoP:12000,   demoC:2000 },
+      { no:14, name:'冷氣費',                                                                        demoP:36000,   demoC:6000 },
+      { no:15, name:'保全費',                                                                        demoP:48000,   demoC:8000 },
+      { no:16, name:'補充保費',                                                                      demoP:9600,    demoC:1600 },
+      { no:17, name:'電話費',                                                                        demoP:6000,    demoC:1000 },
+      { no:18, name:'水電費',                                                                        demoP:18000,   demoC:3000 },
+      { no:19, name:'定點租金',                                                                      demoP:120000,  demoC:20000 },
+      { cat:'媒體費用', catSpan:13, sub:'大眾', subSpan:6, no:20, name:'CF製作費',                    demoP:850000,  demoC:0 },
+      { no:21, name:'CF播放費',                                                                      demoP:480000,  demoC:120000 },
+      { no:22, name:'RD播放費',                                                                      demoP:96000,   demoC:24000 },
+      { no:23, name:'報紙廣告費(NP)',                                                                 demoP:240000,  demoC:60000 },
+      { no:24, name:'雜誌廣告費',                                                                    demoP:120000,  demoC:30000 },
+      { no:25, name:'網路廣告費',                                                                    demoP:360000,  demoC:90000 },
+      { sub:'小眾', subSpan:7, no:26, name:'竹架',                                                   demoP:45000,   demoC:0 },
+      { no:27, name:'帆布看板',                                                                      demoP:36000,   demoC:0 },
+      { no:28, name:'宣傳車及定點車',                                                                 demoP:72000,   demoC:18000 },
+      { no:29, name:'公車廣告費',                                                                    demoP:180000,  demoC:45000 },
+      { no:30, name:'印刷品',                                                                        demoP:96000,   demoC:24000 },
+      { no:31, name:'指示牌',                                                                        demoP:30000,   demoC:0 },
+      { no:32, name:'派夾報',                                                                        demoP:24000,   demoC:6000 },
+      { cat:'非固定費用(外)', catSpan:7, subNull:true, no:33, name:'制服費',                           demoP:18000,   demoC:0 },
+      { no:34, name:'介紹費',                                                                        demoP:240000,  demoC:60000 },
+      { no:35, name:'贈品',                                                                          demoP:48000,   demoC:0 },
+      { no:36, name:'其他租金(接駁車.宿舍)',                                                           demoP:36000,   demoC:6000 },
+      { no:37, name:'代言人/活動費',                                                                  demoP:0,       demoC:0 },
+      { no:38, name:'業主扣款',                                                                      demoP:0,       demoC:0 },
+      { no:39, name:'雜支(打工.工讀生.SP.零用金)',                                                     demoP:120000,  demoC:20000 },
+      { cat:'內部費用', catSpan:5, sub:'固定費用',   subSpan:3, no:40, name:'餐費',                   demoP:48000,   demoC:8000 },
+      { no:41, name:'薪資',                                                                          demoP:720000,  demoC:120000 },
+      { no:42, name:'管銷費',                                                                        demoP:360000,  demoC:60000 },
+      { sub:'非固定費用', subSpan:2, no:43, name:'獎金',                                              demoP:0,       demoC:0 },
+      { no:44, name:'稅金',                                                                          demoP:36000,   demoC:6000 },
+    ];
+
+    // 讀取 URL 參數並填入頁首
+    const p        = new URLSearchParams(location.search);
+    const building = p.get('building') || '—';
+    const year     = p.get('year')     || '—';
+    const month    = p.get('month')    || '—';
+    const period   = p.get('period')   || '—';
+    const dateFrom = p.get('dateFrom') || '—';
+    const dateTo   = p.get('dateTo')   || '—';
+    const salesAmt = p.get('salesAmt') || '—';
+
+    document.getElementById('pBldg').textContent    = building;
+    document.getElementById('pYear').textContent    = year;
+    document.getElementById('pMonth').textContent   = month ? month + '月' : '—';
+    document.getElementById('pPeriod').textContent  = period;
+    document.getElementById('pDateFrom').textContent = dateFrom;
+    document.getElementById('pDateTo').textContent   = dateTo;
+    document.getElementById('pSalesAmt').textContent = salesAmt !== '—' ? Number(salesAmt).toLocaleString() : '—';
+
+    // 渲染費用表（唯讀，全部帶入 0）
+    function renderPrint() {
+      const tbody = document.getElementById('printTbody');
+      ITEMS.forEach(item => {
+        const tr = document.createElement('tr');
+
+        if (item.cat !== undefined) {
+          const td = document.createElement('td');
+          td.rowSpan = item.catSpan;
+          td.colSpan = item.subNull ? 2 : 1;
+          td.textContent = item.cat;
+          td.className = 'cat-cell';
+          tr.appendChild(td);
+        }
+        if (item.sub !== undefined) {
+          const td = document.createElement('td');
+          td.rowSpan = item.subSpan;
+          td.textContent = item.sub;
+          td.className = 'sub-cell';
+          tr.appendChild(td);
+        }
+
+        const tdNo = document.createElement('td');
+        tdNo.textContent = item.no;
+        tdNo.className = 'data-cell';
+        tdNo.style.textAlign = 'center';
+        tdNo.style.color = '#9ca3af';
+        tr.appendChild(tdNo);
+
+        const tdName = document.createElement('td');
+        tdName.textContent = item.name;
+        tdName.className = 'data-cell';
+        tr.appendChild(tdName);
+
+        const vals = [item.demoP, item.demoC, item.demoP + item.demoC];
+        vals.forEach(val => {
+          const td = document.createElement('td');
+          td.textContent = val ? val.toLocaleString() : '0';
+          td.className = 'num-cell';
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      let tp = 0, tc = 0;
+      ITEMS.forEach(item => { tp += item.demoP; tc += item.demoC; });
+      document.getElementById('ptotalPrev').textContent = tp.toLocaleString();
+      document.getElementById('ptotalCurr').textContent = tc.toLocaleString();
+      document.getElementById('ptotalSum').textContent  = (tp + tc).toLocaleString();
+    }
+
+    renderPrint();
+  </script>
+</body>
+</html>
