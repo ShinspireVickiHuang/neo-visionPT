@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>年度業績統計週次 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <!-- 頂部 -->
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <!-- 左側選單 -->
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <!-- 主內容 -->
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">系統管理 / 年度業績統計週次</h2>
+        <p class="text-xs text-gray-500 mt-1">設定每個年度的月份計算區間、週數與月會日期。儲存後，週報表等功能會依此設定產出。</p>
+      </div>
+
+      <!-- 工具列 -->
+      <div class="bg-white rounded shadow-sm p-6 mb-6">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <!-- 年度切換器 -->
+          <div class="flex items-center gap-3">
+            <button id="btnPrevYear" title="上一年" class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <div class="flex items-baseline gap-2 min-w-[200px] justify-center">
+              <span class="text-2xl font-bold text-gray-800"><span id="curYear">115</span> 年</span>
+              <span class="text-sm text-gray-500">（西元 <span id="curYearAd">2026</span>）</span>
+            </div>
+            <button id="btnNextYear" title="下一年" class="p-2 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+            <button id="btnJumpYear" class="ml-2 flex items-center gap-1 border border-gray-300 text-gray-600 hover:bg-gray-100 px-3 py-2 rounded text-sm">
+              <i data-lucide="calendar-search" class="w-4 h-4"></i> 跳到其他年度
+            </button>
+          </div>
+
+          <!-- 動作按鈕 -->
+          <div class="flex items-center gap-2">
+            <button id="btnCopyLast" class="flex items-center gap-1 border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 rounded text-sm">
+              <i data-lucide="copy" class="w-4 h-4"></i> 複製去年設定
+            </button>
+            <button id="btnReset" class="flex items-center gap-1 border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 rounded text-sm">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 清空
+            </button>
+            <button id="btnSave" class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm">
+              <i data-lucide="save" class="w-4 h-4"></i> 儲存
+            </button>
+          </div>
+        </div>
+
+        <!-- 已設定年度標籤列 -->
+        <div class="mt-4 pt-4 border-t flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-gray-500">已設定年度：</span>
+          <div id="savedYearChips" class="flex items-center gap-2 flex-wrap"></div>
+        </div>
+      </div>
+
+      <!-- 表格 -->
+      <div class="bg-white rounded shadow-sm">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-gray-700"><span id="titleYear">115</span>年業績統計週次</h3>
+            <div class="text-sm text-gray-500">合計：<span id="totalWeeks" class="font-bold text-gray-700">0</span> 週</div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr class="table-header-bg text-white">
+                  <th class="p-3 text-center font-medium whitespace-nowrap w-20">月份</th>
+                  <th class="p-3 text-center font-medium whitespace-nowrap" colspan="2">計算日期</th>
+                  <th class="p-3 text-center font-medium whitespace-nowrap w-24">週數</th>
+                  <th class="p-3 text-center font-medium whitespace-nowrap bg-yellow-500">月會</th>
+                  <th class="p-3 text-left font-medium whitespace-nowrap">備註</th>
+                </tr>
+              </thead>
+              <tbody id="rowsBody" class="divide-y"></tbody>
+            </table>
+          </div>
+
+          <p class="text-xs text-gray-400 mt-4">
+            提示：週數會依「計算日期起 ~ 計算日期迄」自動計算（含起訖日 ÷ 7，無條件進位）。月會欄位為黃色標記，用於月會排程。
+          </p>
+        </div>
+      </div>
+
+      <!-- 儲存提示 -->
+      <div id="toast" class="fixed bottom-6 right-6 bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-sm hidden">已儲存</div>
+    </main>
+  </div>
+
+  <script src="assets/js/sidebar.js"></script>
+  <script>
+    // ====== 資料層 ======
+    const STORAGE_KEY = 'newpt_annual_cycles';   // { "115": { months: [...] }, ... }
+    const MONTH_NAMES = ['1月份','2月份','3月份','4月份','5月份','6月份','7月份','8月份','9月份','10月份','11月份','12月份'];
+
+    // 民國 → 西元
+    const rocToAd = (roc) => Number(roc) + 1911;
+
+    // 載入 / 寫入 localStorage
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    function saveAll(obj) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    }
+
+    // 取得指定年度資料；若無則回傳空殼（12 列 null）
+    function getYearData(rocYear) {
+      const all = loadAll();
+      if (all[rocYear]) return all[rocYear];
+      return { months: Array.from({ length: 12 }, () => ({ startDate:'', endDate:'', meetingDate:'', note:'' })) };
+    }
+
+    // 計算週數（含起訖日 ÷ 7 無條件進位）
+    function calcWeeks(startISO, endISO) {
+      if (!startISO || !endISO) return '';
+      const s = new Date(startISO), e = new Date(endISO);
+      if (isNaN(s) || isNaN(e) || e < s) return '';
+      const days = Math.floor((e - s) / 86400000) + 1;
+      return Math.ceil(days / 7);
+    }
+
+    // ====== 預設資料：115 年（依使用者提供的截圖） ======
+    function get115Default() {
+      return {
+        months: [
+          { startDate:'2025-12-29', endDate:'2026-02-01', meetingDate:'2026-01-05', note:'' },
+          { startDate:'2026-02-02', endDate:'2026-03-01', meetingDate:'2026-02-02', note:'' },
+          { startDate:'2026-03-02', endDate:'2026-04-05', meetingDate:'2026-03-02', note:'' },
+          { startDate:'2026-04-06', endDate:'2026-05-03', meetingDate:'2026-04-13', note:'4/6清明補假' },
+          { startDate:'2026-05-04', endDate:'2026-05-31', meetingDate:'2026-05-04', note:'' },
+          { startDate:'2026-06-01', endDate:'2026-07-05', meetingDate:'2026-06-01', note:'' },
+          { startDate:'2026-07-06', endDate:'2026-08-02', meetingDate:'2026-07-06', note:'' },
+          { startDate:'2026-08-03', endDate:'2026-09-06', meetingDate:'2026-08-03', note:'' },
+          { startDate:'2026-09-07', endDate:'2026-10-04', meetingDate:'2026-09-07', note:'' },
+          { startDate:'2026-10-05', endDate:'2026-11-01', meetingDate:'2026-10-05', note:'' },
+          { startDate:'2026-11-02', endDate:'2026-11-29', meetingDate:'2026-11-02', note:'' },
+          { startDate:'2026-11-30', endDate:'2026-12-27', meetingDate:'2026-12-07', note:'調整週次' }
+        ]
+      };
+    }
+
+    // ====== 渲染 ======
+    let currentYear = 115;
+    let currentData = null;
+
+    // 渲染「已設定年度」標籤列
+    function renderSavedYearChips() {
+      const all = loadAll();
+      const years = Object.keys(all).map(Number).sort((a,b) => a-b);
+      const wrap = document.getElementById('savedYearChips');
+      if (years.length === 0) {
+        wrap.innerHTML = '<span class="text-xs text-gray-400">（尚無）</span>';
+        return;
+      }
+      wrap.innerHTML = years.map(y => {
+        const isCur = y === currentYear;
+        const cls = isCur
+          ? 'bg-[#a09080] text-white border-[#a09080]'
+          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100';
+        return `<button data-year="${y}" class="year-chip text-xs px-2.5 py-1 rounded-full border ${cls}">${y}</button>`;
+      }).join('');
+      wrap.querySelectorAll('.year-chip').forEach(btn => {
+        btn.addEventListener('click', () => loadYear(btn.dataset.year));
+      });
+    }
+
+    function renderRows() {
+      const body = document.getElementById('rowsBody');
+      body.innerHTML = currentData.months.map((m, idx) => `
+        <tr class="${idx % 2 === 0 ? '' : 'bg-gray-50'} hover:bg-blue-50/30">
+          <td class="p-3 text-center font-medium">${MONTH_NAMES[idx]}</td>
+          <td class="p-2">
+            <input type="date" data-idx="${idx}" data-field="startDate" value="${m.startDate || ''}"
+              class="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="p-2">
+            <input type="date" data-idx="${idx}" data-field="endDate" value="${m.endDate || ''}"
+              class="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="p-3 text-center">
+            <span class="weeks-cell" data-idx="${idx}">${m.startDate && m.endDate ? '共' + calcWeeks(m.startDate, m.endDate) + '週' : '—'}</span>
+          </td>
+          <td class="p-2 bg-yellow-50">
+            <input type="date" data-idx="${idx}" data-field="meetingDate" value="${m.meetingDate || ''}"
+              class="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="p-2">
+            <input type="text" data-idx="${idx}" data-field="note" value="${m.note || ''}" placeholder="可填補假、調整等說明"
+              class="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+        </tr>
+      `).join('');
+
+      // 綁定即時變更
+      body.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', onCellChange);
+      });
+      updateTotal();
+    }
+
+    function onCellChange(e) {
+      const idx = Number(e.target.dataset.idx);
+      const field = e.target.dataset.field;
+      currentData.months[idx][field] = e.target.value;
+      // 重算該列週數
+      const m = currentData.months[idx];
+      const cell = document.querySelector(`.weeks-cell[data-idx="${idx}"]`);
+      if (cell) cell.textContent = (m.startDate && m.endDate) ? ('共' + calcWeeks(m.startDate, m.endDate) + '週') : '—';
+      updateTotal();
+    }
+
+    function updateTotal() {
+      let total = 0;
+      currentData.months.forEach(m => {
+        const w = calcWeeks(m.startDate, m.endDate);
+        if (typeof w === 'number') total += w;
+      });
+      document.getElementById('totalWeeks').textContent = total;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 1800);
+    }
+
+    // ====== 事件 ======
+    function loadYear(rocYear) {
+      currentYear = Number(rocYear);
+      currentData = getYearData(currentYear);
+      document.getElementById('titleYear').textContent = currentYear;
+      document.getElementById('curYear').textContent = currentYear;
+      document.getElementById('curYearAd').textContent = rocToAd(currentYear);
+      renderRows();
+      renderSavedYearChips();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // 首次進入：若 115 年無資料，自動帶入截圖預設值
+      const all = loadAll();
+      if (!all['115']) {
+        all['115'] = get115Default();
+        saveAll(all);
+      }
+
+      // 預設載入：當前民國年（依今天日期算）；若該年無資料、退回 115
+      const todayRoc = new Date().getFullYear() - 1911;
+      const defaultYear = all[String(todayRoc)] ? todayRoc : 115;
+      loadYear(defaultYear);
+
+      document.getElementById('btnPrevYear').addEventListener('click', () => loadYear(currentYear - 1));
+      document.getElementById('btnNextYear').addEventListener('click', () => loadYear(currentYear + 1));
+      document.getElementById('btnJumpYear').addEventListener('click', () => {
+        const input = prompt('輸入要跳到的民國年（例如 110、120）：', String(currentYear));
+        if (input == null) return;
+        const y = Number(String(input).trim());
+        if (!Number.isInteger(y) || y < 1 || y > 250) {
+          alert('請輸入有效的民國年數字（例如 110）。');
+          return;
+        }
+        loadYear(y);
+      });
+
+      document.getElementById('btnSave').addEventListener('click', () => {
+        const all = loadAll();
+        all[currentYear] = currentData;
+        saveAll(all);
+        renderSavedYearChips();
+        showToast(`已儲存 ${currentYear} 年設定`);
+      });
+
+      document.getElementById('btnCopyLast').addEventListener('click', () => {
+        const lastYear = currentYear - 1;
+        const all = loadAll();
+        if (!all[lastYear]) {
+          alert(`找不到 ${lastYear} 年的設定，無法複製。`);
+          return;
+        }
+        if (!confirm(`將 ${lastYear} 年的設定複製到 ${currentYear} 年（日期會自動 +1 年），確定？`)) return;
+        const copied = JSON.parse(JSON.stringify(all[lastYear]));
+        copied.months.forEach(m => {
+          ['startDate','endDate','meetingDate'].forEach(f => {
+            if (m[f]) {
+              const d = new Date(m[f]);
+              d.setFullYear(d.getFullYear() + 1);
+              m[f] = d.toISOString().slice(0,10);
+            }
+          });
+        });
+        currentData = copied;
+        renderRows();
+        showToast('已複製，請按儲存以保留');
+      });
+
+      document.getElementById('btnReset').addEventListener('click', () => {
+        if (!confirm(`清空 ${currentYear} 年的所有欄位？（清空後需按儲存才會寫入）`)) return;
+        currentData = { months: Array.from({ length: 12 }, () => ({ startDate:'', endDate:'', meetingDate:'', note:'' })) };
+        renderRows();
+      });
+
+      lucide.createIcons();
+    });
+
+    // ====== 對外 helper（之後其他頁可呼叫） ======
+    // 用法： window.AnnualCycle.get(115) → 取得該年完整資料
+    window.AnnualCycle = {
+      get(rocYear) {
+        const all = loadAll();
+        return all[rocYear] || null;
+      },
+      getMonth(rocYear, monthIdx /* 0~11 */) {
+        const y = this.get(rocYear);
+        return y ? y.months[monthIdx] : null;
+      },
+      listYears() {
+        return Object.keys(loadAll()).map(Number).sort((a,b) => a-b);
+      }
+    };
+  </script>
+</body>
+</html>

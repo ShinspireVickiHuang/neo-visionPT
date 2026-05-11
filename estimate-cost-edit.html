@@ -75,11 +75,19 @@
 
     <main class="flex-1 p-6 overflow-x-hidden">
 
-      <div class="mb-4">
+      <div class="mb-4 flex items-center justify-between">
         <h2 class="text-lg font-bold text-gray-700">
           <a href="estimate-cost-list.html" class="hover:text-blue-600">預估費用明細表</a> /
           <span id="modeTitle">檢視</span>
         </h2>
+        <div class="flex items-center gap-2">
+          <button id="btnTopSave" onclick="saveCost()" class="hidden flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">
+            <i data-lucide="save" class="w-4 h-4"></i> 儲存
+          </button>
+          <a href="estimate-cost-list.html" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300 px-3 py-1.5 rounded text-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表
+          </a>
+        </div>
       </div>
 
       <!-- 建案資訊 + 統計期間 + 當月銷售金額 -->
@@ -122,6 +130,12 @@
         <span>所有項目的當月金額自動帶入<strong>媒體執行總表</strong>當月累計資料；當月銷售金額來自<strong>銷控表</strong>銷售資料，均不可手動修改。</span>
       </div>
 
+      <!-- 首月時：提醒「開案費用」為一次性費用 -->
+      <div id="openFirstHint" class="hidden bg-orange-50 border border-orange-200 rounded p-3 mb-4 text-sm text-orange-700 items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+        <span>「開案費用」分類為一次性費用，<strong>僅於本月（該建案首月）認列</strong>，後續月份不會再列出。</span>
+      </div>
+
       <!-- 費用明細主表 -->
       <div class="bg-white rounded shadow-sm mb-4">
         <div class="overflow-x-auto p-4">
@@ -150,20 +164,15 @@
         </div>
       </div>
 
-      <!-- 新增模式：儲存 + 取消 -->
-      <div id="btnNew" class="hidden flex justify-center gap-3 pb-8">
-        <a href="estimate-cost-list.html"
-           class="px-8 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm">取消</a>
-        <button onclick="saveCost()"
-           class="px-8 py-2 rounded bg-[#5d6b7b] hover:bg-[#4a5563] text-white text-sm">儲存</button>
-      </div>
-
-      <!-- 檢視模式：返回列表頁 -->
-      <div id="btnView" class="hidden flex justify-center pb-8">
-        <a href="estimate-cost-list.html"
-           class="px-8 py-2 rounded bg-[#5d6b7b] hover:bg-[#4a5563] text-white text-sm flex items-center gap-2">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表頁
-        </a>
+      <!-- 送審歷程（檢視/編輯模式才顯示） -->
+      <div id="reviewHistory" class="hidden bg-white rounded shadow-sm p-5 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-bold text-gray-700 flex items-center gap-2">
+            <i data-lucide="history" class="w-5 h-5 text-gray-500"></i> 送審歷程
+          </h3>
+          <span id="historyStatusBadge"></span>
+        </div>
+        <ol id="timelineList" class="relative border-l-2 border-gray-200 ml-2 space-y-5 pl-5 py-1"></ol>
       </div>
 
     </main>
@@ -236,47 +245,122 @@
     const dateFrom = params.get('dateFrom') || '';
     const dateTo   = params.get('dateTo')   || '';
     const salesAmt = params.get('salesAmt') || '';
+    const status   = params.get('status')   || '';
 
     document.getElementById('infoBldg').textContent  = building || '—';
     document.getElementById('infoYear').textContent   = year     || '—';
     document.getElementById('infoMonth').textContent  = month ? month + '月' : '—';
-    document.getElementById('modeTitle').textContent  = mode === 'new' ? '新增' : '檢視';
+    const TITLE_MAP = { new: '新增', edit: '編輯', view: '檢視' };
+    document.getElementById('modeTitle').textContent  = TITLE_MAP[mode] || '檢視';
 
-    // 顯示對應按鈕組
-    if (mode === 'new') {
-      document.getElementById('btnNew').classList.remove('hidden');
-    } else {
-      document.getElementById('btnView').classList.remove('hidden');
+    // 顯示對應按鈕組（new / edit 顯示儲存；view 模式只有返回列表）
+    if (mode === 'new' || mode === 'edit') {
+      document.getElementById('btnTopSave').classList.remove('hidden');
     }
 
-    // 統計期間(起)：優先用 dateFrom，否則由 period + year + month 推算
-    if (dateFrom) {
-      document.getElementById('periodStart').value = dateFrom;
-    } else if (period && year && month) {
-      const mm = month.padStart(2,'0');
-      const dd = period.slice(2).padStart(2,'0');
-      document.getElementById('periodStart').value = `${year}-${mm}-${dd}`;
+    // ====== 串接年度週期設定（系統管理 ▸ 年度業績統計週次） ======
+    const CYCLE_KEY = 'newpt_annual_cycles';
+    function loadCycles() {
+      try { return JSON.parse(localStorage.getItem(CYCLE_KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    // 從週期設定取該月起訖
+    function getMonthRangeFromCycle(adYear, monthStr) {
+      if (!adYear || !monthStr) return null;
+      const rocYear = Number(adYear) - 1911;
+      const cycle = loadCycles()[rocYear];
+      if (!cycle || !cycle.months) return null;
+      const idx = Number(monthStr) - 1;
+      const m = cycle.months[idx];
+      return (m && m.startDate && m.endDate) ? { start: m.startDate, end: m.endDate } : null;
     }
 
-    // 統計期間(迄)：優先用 dateTo，否則推算為起日 + 5 天
-    if (dateTo) {
-      document.getElementById('periodEnd').value = dateTo;
-    } else {
-      const startVal = document.getElementById('periodStart').value;
-      if (startVal) {
-        const d = new Date(startVal);
-        d.setDate(d.getDate() + 5);
-        document.getElementById('periodEnd').value = d.toISOString().slice(0,10);
-      }
+    // 統計期間：URL > 週期設定 > 留空
+    if (dateFrom) document.getElementById('periodStart').value = dateFrom;
+    if (dateTo)   document.getElementById('periodEnd').value   = dateTo;
+    const cycleRange = getMonthRangeFromCycle(year, month);
+    if (cycleRange) {
+      if (!document.getElementById('periodStart').value) document.getElementById('periodStart').value = cycleRange.start;
+      if (!document.getElementById('periodEnd').value)   document.getElementById('periodEnd').value   = cycleRange.end;
     }
 
     // 當月銷售金額：由系統帶入（列表傳入或 demo 示意值）
     document.getElementById('salesAmt').value = salesAmt || 12500000;
 
+    // ====== 偵測：該建案是否首月 ======
+    function getEarliestEntryForBuilding(bldg) {
+      if (!bldg) return null;
+      const prefix = `media_cost_${bldg}_`;
+      const list = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) list.push(k.slice(prefix.length));
+      }
+      if (list.length === 0) return null;
+      list.sort();
+      return list[0];
+    }
+    const earliest = getEarliestEntryForBuilding(building);
+    // 首月判定：沒有任何紀錄 → 首月；有紀錄且當前 = 最早 → 首月
+    const isFirstMonth = !earliest || earliest === `${year}_${month}`;
+    // 首月才顯示「開案費用一次性」提示
+    if (isFirstMonth) {
+      const hint = document.getElementById('openFirstHint');
+      hint.classList.remove('hidden');
+      hint.classList.add('flex');
+    }
+    // 開案費用項目編號（1~10）
+    const isOpenItem = (item) => item.no >= 1 && item.no <= 10;
+
+    // ====== 前期累計計算 ======
+    // 取得該建案早於當月的所有月份 key（例如 ["2026_05"]）
+    function getEarlierMonths() {
+      const prefix = `media_cost_${building}_`;
+      const here = `${year}_${month}`;
+      const list = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) {
+          const tail = k.slice(prefix.length);
+          if (tail < here) list.push(tail);
+        }
+      }
+      return list.sort();
+    }
+    // 取得指定項目的「前期累計金額」= 之前所有月份的當月金額之和
+    // 1) 優先讀 estimate_cost_<bldg>_<前月> 真實儲存的 curr
+    // 2) 否則用 demoC × 前月數量（demo 估算）
+    function getPrevAccumulated(item) {
+      if (isFirstMonth) return 0;
+      const earlierMonths = getEarlierMonths();
+      const ePrefix = `estimate_cost_${building}_`;
+      let total = 0;
+      let foundReal = false;
+      earlierMonths.forEach(ym => {
+        const raw = localStorage.getItem(ePrefix + ym);
+        if (raw) {
+          try {
+            const obj = JSON.parse(raw);
+            if (obj && obj.items && obj.items[item.no] != null) {
+              total += parseFloat(obj.items[item.no].curr) || 0;
+              foundReal = true;
+            }
+          } catch (e) {}
+        }
+      });
+      // 全無真實儲存資料 → demo 估算（每月當月 = item.demoC）
+      if (!foundReal) {
+        return earlierMonths.length * (item.demoC || 0);
+      }
+      return total;
+    }
+
     // 渲染費用表
     function renderTable() {
       const tbody = document.getElementById('costTbody');
-      ITEMS.forEach(item => {
+      // 非首月 → 略過開案費用整個分類
+      const visibleItems = isFirstMonth ? ITEMS : ITEMS.filter(it => !isOpenItem(it));
+      visibleItems.forEach(item => {
         const tr = document.createElement('tr');
         if (item.isMedia) tr.classList.add('media-row');
 
@@ -311,15 +395,17 @@
         tdName.className = 'data-cell';
         tr.appendChild(tdName);
 
-        // 前期累計金額（唯讀）
+        // 前期累計金額（唯讀；首月為 0/空白，後續月份從之前月份累計）
         const tdPrev = document.createElement('td');
         tdPrev.className = 'data-cell';
         const prevInp = document.createElement('input');
         prevInp.type = 'number';
         prevInp.id = `prev-${item.no}`;
-        prevInp.value = item.demoP ?? 0;
+        const prevVal = getPrevAccumulated(item);
+        prevInp.value = prevVal || (isFirstMonth ? '' : 0);
         prevInp.readOnly = true;
         prevInp.style.cssText = 'width:100%;min-width:110px;text-align:right;background:#f1f5f9;border-radius:4px;padding:2px 8px;font-size:13px;outline:none;cursor:not-allowed;color:#6b7280;';
+        if (isFirstMonth) prevInp.placeholder = '—';
         tdPrev.appendChild(prevInp);
         tr.appendChild(tdPrev);
 
@@ -336,11 +422,12 @@
         tdCurr.appendChild(currInp);
         tr.appendChild(tdCurr);
 
-        // 全案累計金額（自動計算）
+        // 全案累計金額（自動計算 = 前期 + 當月）
         const tdSum = document.createElement('td');
         tdSum.id = `sum-${item.no}`;
         tdSum.className = 'sum-cell';
-        tdSum.textContent = (item.demoP + item.demoC).toLocaleString();
+        const sumVal = (parseFloat(prevVal) || 0) + (parseFloat(item.demoC) || 0);
+        tdSum.textContent = sumVal.toLocaleString();
         tr.appendChild(tdSum);
 
         tbody.appendChild(tr);
@@ -357,17 +444,99 @@
     }
 
     function updateTotals() {
+      // 只計算可見列（非首月會略過開案費用 1~10）
       let tp = 0, tc = 0;
       ITEMS.forEach(item => {
-        tp += parseFloat(document.getElementById(`prev-${item.no}`)?.value) || 0;
-        tc += parseFloat(document.getElementById(`curr-${item.no}`)?.value) || 0;
+        const prevEl = document.getElementById(`prev-${item.no}`);
+        const currEl = document.getElementById(`curr-${item.no}`);
+        if (!prevEl || !currEl) return;  // 被隱藏的項目跳過
+        tp += parseFloat(prevEl.value) || 0;
+        tc += parseFloat(currEl.value) || 0;
       });
       document.getElementById('totalPrev').textContent = tp.toLocaleString();
       document.getElementById('totalCurr').textContent = tc.toLocaleString();
       document.getElementById('totalSum').textContent  = (tp + tc).toLocaleString();
     }
 
+    // ====== 送審歷程渲染 ======
+    // 依 status 顯示對應的歷程；new 模式不顯示
+    function renderReviewHistory() {
+      if (mode === 'new') return;
+      const histories = {
+        '未送審': [
+          { ts: '2026-05-04 09:15:23', action: '建立', actor: 'admin', tone: 'gray' }
+        ],
+        '審核中': [
+          { ts: '2026-04-06 09:00:00', action: '建立', actor: 'admin',  tone: 'gray' },
+          { ts: '2026-05-05 10:15:00', action: '送審', actor: 'admin',  tone: 'blue', note: '送至簽核系統，等待主管核可' }
+        ],
+        '被退回': [
+          { ts: '2026-04-06 08:30:11', action: '建立',   actor: 'admin',  tone: 'gray' },
+          { ts: '2026-05-04 09:00:00', action: '送審',   actor: 'admin',  tone: 'blue', note: '送至簽核系統' },
+          { ts: '2026-05-08 15:42:00', action: '被退回', actor: '張經理', tone: 'red',  note: '媒體預估偏高，請調整網路廣告與印刷品費用後重送' }
+        ],
+        '審核通過': [
+          { ts: '2026-03-02 10:15:00', action: '建立',   actor: 'admin',  tone: 'gray' },
+          { ts: '2026-04-05 16:00:00', action: '送審',   actor: 'admin',  tone: 'blue', note: '送至簽核系統' },
+          { ts: '2026-04-08 16:30:00', action: '審核通過', actor: '王主管', tone: 'green', note: '費用結構合理，准予執行' }
+        ]
+      };
+      const list = histories[status] || histories['未送審'];
+
+      // 狀態標章樣式對應
+      const badgeStyles = {
+        '未送審':   'bg-gray-200 text-gray-700',
+        '審核中':   'bg-blue-500 text-white',
+        '被退回':   'bg-red-100 text-red-600',
+        '審核通過': 'bg-green-100 text-green-700'
+      };
+      const badgeCls = badgeStyles[status] || badgeStyles['未送審'];
+      document.getElementById('historyStatusBadge').innerHTML =
+        `<span class="inline-block ${badgeCls} text-xs px-3 py-1 rounded-full">${status || '未送審'}</span>`;
+
+      // 圓點顏色對應
+      const dotColor = {
+        gray:  'bg-gray-400',
+        blue:  'bg-blue-500',
+        green: 'bg-green-500',
+        red:   'bg-red-500'
+      };
+
+      const ol = document.getElementById('timelineList');
+      ol.innerHTML = list.map(h => `
+        <li class="relative">
+          <span class="absolute -left-[27px] top-1 w-3 h-3 rounded-full ${dotColor[h.tone]} ring-4 ring-white shadow"></span>
+          <div class="flex flex-wrap items-baseline gap-x-2">
+            <span class="text-xs text-gray-400">${h.ts}</span>
+            <span class="font-semibold text-gray-800 text-sm">${h.action}</span>
+            <span class="text-xs text-gray-500">by ${h.actor}</span>
+          </div>
+          ${h.note ? `<p class="text-xs text-gray-600 mt-1 leading-relaxed">${h.note}</p>` : ''}
+        </li>
+      `).join('');
+
+      document.getElementById('reviewHistory').classList.remove('hidden');
+    }
+    renderReviewHistory();
+
     function saveCost() {
+      // 真正寫入 localStorage（讓下個月可讀取作前期累計）
+      const items = {};
+      ITEMS.forEach(item => {
+        const currEl = document.getElementById(`curr-${item.no}`);
+        const prevEl = document.getElementById(`prev-${item.no}`);
+        if (!currEl) return;  // 被隱藏的開案費用項目（非首月）跳過
+        items[item.no] = {
+          curr: parseFloat(currEl.value) || 0,
+          prev: parseFloat(prevEl?.value) || 0
+        };
+      });
+      const key = `estimate_cost_${building}_${year}_${month}`;
+      localStorage.setItem(key, JSON.stringify({
+        meta: { building, year, month, savedAt: new Date().toISOString() },
+        items
+      }));
+
       const t = document.createElement('div');
       t.style.cssText = 'position:fixed;top:80px;right:24px;z-index:100000;background:#10b981;color:#fff;padding:14px 20px;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,.15);font-size:14px;display:flex;align-items:center;gap:10px;';
       t.innerHTML = '<span style="width:22px;height:22px;background:rgba(255,255,255,0.2);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;">✓</span><span>已儲存預估費用明細表</span>';

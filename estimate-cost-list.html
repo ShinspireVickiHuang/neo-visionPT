@@ -54,16 +54,13 @@
             </select>
           </div>
           <div class="flex items-center gap-3">
-            <label class="text-sm font-medium w-10 flex-shrink-0">週期</label>
-            <select id="srchPeriod" class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
-              <option value="">請選擇</option>
-              <option value="0107">0107</option>
-              <option value="0114">0114</option>
-              <option value="0121">0121</option>
-              <option value="0128">0128</option>
+            <label class="text-sm font-medium w-10 flex-shrink-0">月份</label>
+            <select id="srchMonth" class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-72">
+              <option value="">（請先選年度）</option>
             </select>
           </div>
         </div>
+        <div id="cycleHint" class="mt-3 text-xs"></div>
         <div class="flex justify-end gap-2 mt-4">
           <button class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm">
             <i data-lucide="search" class="w-4 h-4"></i> 查詢
@@ -82,7 +79,7 @@
               <tr class="table-header-bg text-white">
                 <th class="p-3 text-left font-medium whitespace-nowrap">建案</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">年度</th>
-                <th class="p-3 text-left font-medium whitespace-nowrap">週期</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">月份</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">日期(起)</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">日期(迄)</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">建立時間</th>
@@ -92,82 +89,82 @@
               </tr>
             </thead>
             <tbody class="divide-y">
-              <!-- 未送審 -->
+              <!-- 畫世代 5月（當月）— 未送審 -->
               <tr class="hover:bg-gray-50">
                 <td class="p-3">畫世代</td>
                 <td class="p-3">2026</td>
-                <td class="p-3">0107</td>
-                <td class="p-3">2026-01-07</td>
-                <td class="p-3">2026-01-12</td>
-                <td class="p-3 whitespace-nowrap">2026-01-07 10:22:15</td>
-                <td class="p-3 whitespace-nowrap">2026-05-05 09:13:40</td>
+                <td class="p-3">05</td>
+                <td class="p-3">2026-05-04</td>
+                <td class="p-3">2026-05-31</td>
+                <td class="p-3 whitespace-nowrap">2026-05-04 09:15:23</td>
+                <td class="p-3 whitespace-nowrap">2026-05-11 14:30:00</td>
                 <td class="p-3 text-center status-cell">
                   <span class="inline-block bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full">未送審</span>
                 </td>
                 <td class="p-3">
                   <div class="flex items-center justify-center gap-1">
                     <button onclick="sendForReview(this)" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded text-xs">送審</button>
-                    <a href="estimate-cost-edit.html?building=畫世代&year=2026&month=01&period=0107&dateFrom=2026-01-07&dateTo=2026-01-12&salesAmt=12500000" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
+                    <a href="estimate-cost-edit.html?building=畫世代&year=2026&month=05&dateFrom=2026-05-04&dateTo=2026-05-31&salesAmt=0&status=未送審" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
                     <button class="border border-red-300 text-red-500 px-3 py-1 rounded text-xs hover:bg-red-50">刪除</button>
                   </div>
                 </td>
               </tr>
-              <!-- 審核中 -->
+              <!-- 畫世代 4月 — 被退回（上個月送審後被退） -->
               <tr class="bg-gray-50 hover:bg-gray-100">
                 <td class="p-3">畫世代</td>
                 <td class="p-3">2026</td>
-                <td class="p-3">0114</td>
-                <td class="p-3">2026-01-14</td>
-                <td class="p-3">2026-01-19</td>
-                <td class="p-3 whitespace-nowrap">2026-01-14 08:55:30</td>
-                <td class="p-3 whitespace-nowrap">2026-05-05 09:13:40</td>
-                <td class="p-3 text-center">
-                  <span class="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">審核中</span>
-                </td>
-                <td class="p-3">
-                  <div class="flex items-center justify-center gap-1">
-                    <button disabled class="bg-gray-300 text-gray-500 px-3 py-1 rounded text-xs cursor-not-allowed">送審</button>
-                    <a href="estimate-cost-edit.html?building=畫世代&year=2026&month=01&period=0114&dateFrom=2026-01-14&dateTo=2026-01-19&salesAmt=8000000" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
-                    <button class="border border-red-300 text-red-500 px-3 py-1 rounded text-xs hover:bg-red-50">刪除</button>
-                  </div>
-                </td>
-              </tr>
-              <!-- 被退回 -->
-              <tr class="hover:bg-gray-50">
-                <td class="p-3">畫世代</td>
-                <td class="p-3">2025</td>
-                <td class="p-3">0121</td>
-                <td class="p-3">2025-01-21</td>
-                <td class="p-3">2025-01-26</td>
-                <td class="p-3 whitespace-nowrap">2025-01-21 14:30:00</td>
-                <td class="p-3 whitespace-nowrap">2025-06-10 11:05:22</td>
+                <td class="p-3">04</td>
+                <td class="p-3">2026-04-06</td>
+                <td class="p-3">2026-05-03</td>
+                <td class="p-3 whitespace-nowrap">2026-04-06 08:30:11</td>
+                <td class="p-3 whitespace-nowrap">2026-05-08 15:42:00</td>
                 <td class="p-3 text-center status-cell">
                   <span class="inline-block bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full">被退回</span>
                 </td>
                 <td class="p-3">
                   <div class="flex items-center justify-center gap-1">
                     <button onclick="sendForReview(this)" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded text-xs">送審</button>
-                    <a href="estimate-cost-edit.html?building=畫世代&year=2025&month=01&period=0121&dateFrom=2025-01-21&dateTo=2025-01-26&salesAmt=5200000" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
+                    <a href="estimate-cost-edit.html?building=畫世代&year=2026&month=04&dateFrom=2026-04-06&dateTo=2026-05-03&salesAmt=42000000&status=被退回" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
                     <button class="border border-red-300 text-red-500 px-3 py-1 rounded text-xs hover:bg-red-50">刪除</button>
                   </div>
                 </td>
               </tr>
-              <!-- 審核通過 -->
-              <tr class="bg-gray-50 hover:bg-gray-100">
+              <!-- TheTop 4月 — 審核中 -->
+              <tr class="hover:bg-gray-50">
                 <td class="p-3">TheTop</td>
-                <td class="p-3">2025</td>
-                <td class="p-3">0128</td>
-                <td class="p-3">2025-01-28</td>
-                <td class="p-3">2025-02-02</td>
-                <td class="p-3 whitespace-nowrap">2025-01-28 09:00:00</td>
-                <td class="p-3 whitespace-nowrap">2025-07-01 15:30:00</td>
+                <td class="p-3">2026</td>
+                <td class="p-3">04</td>
+                <td class="p-3">2026-04-06</td>
+                <td class="p-3">2026-05-03</td>
+                <td class="p-3 whitespace-nowrap">2026-04-06 09:00:00</td>
+                <td class="p-3 whitespace-nowrap">2026-05-05 10:15:00</td>
+                <td class="p-3 text-center">
+                  <span class="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">審核中</span>
+                </td>
+                <td class="p-3">
+                  <div class="flex items-center justify-center gap-1">
+                    <button disabled class="bg-gray-300 text-gray-500 px-3 py-1 rounded text-xs cursor-not-allowed">送審</button>
+                    <a href="estimate-cost-edit.html?building=TheTop&year=2026&month=04&dateFrom=2026-04-06&dateTo=2026-05-03&salesAmt=68000000&status=審核中" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
+                    <button class="border border-red-300 text-red-500 px-3 py-1 rounded text-xs hover:bg-red-50">刪除</button>
+                  </div>
+                </td>
+              </tr>
+              <!-- 畫世代 3月 — 審核通過 -->
+              <tr class="bg-gray-50 hover:bg-gray-100">
+                <td class="p-3">畫世代</td>
+                <td class="p-3">2026</td>
+                <td class="p-3">03</td>
+                <td class="p-3">2026-03-02</td>
+                <td class="p-3">2026-04-05</td>
+                <td class="p-3 whitespace-nowrap">2026-03-02 10:15:00</td>
+                <td class="p-3 whitespace-nowrap">2026-04-08 16:30:00</td>
                 <td class="p-3 text-center">
                   <span class="inline-block bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">審核通過</span>
                 </td>
                 <td class="p-3">
                   <div class="flex items-center justify-center gap-1">
-                    <a href="estimate-cost-edit.html?building=TheTop&year=2025&month=01&period=0128&dateFrom=2025-01-28&dateTo=2025-02-02&salesAmt=9800000" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
-                    <a href="estimate-cost-print.html?building=TheTop&year=2025&month=01&period=0128&dateFrom=2025-01-28&dateTo=2025-02-02&salesAmt=9800000" target="_blank" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">匯出PDF</a>
+                    <a href="estimate-cost-edit.html?building=畫世代&year=2026&month=03&dateFrom=2026-03-02&dateTo=2026-04-05&salesAmt=58000000&status=審核通過" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">檢視</a>
+                    <a href="estimate-cost-print.html?building=畫世代&year=2026&month=03&dateFrom=2026-03-02&dateTo=2026-04-05&salesAmt=58000000&status=審核通過" target="_blank" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-100">匯出PDF</a>
                   </div>
                 </td>
               </tr>
@@ -198,18 +195,64 @@
   </style>
 
   <script>
-    document.getElementById('srchYear').value = '2026';
-    document.getElementById('srchPeriod').value = '0107';
+    // ====== 串接年度週期設定（系統管理 ▸ 年度業績統計週次） ======
+    const CYCLE_KEY = 'newpt_annual_cycles';
+    function loadCycles() {
+      try { return JSON.parse(localStorage.getItem(CYCLE_KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    function calcWeeks(s, e) {
+      if (!s || !e) return '';
+      const ds = new Date(s), de = new Date(e);
+      if (isNaN(ds) || isNaN(de) || de < ds) return '';
+      return Math.ceil((Math.floor((de - ds) / 86400000) + 1) / 7);
+    }
+    function fmtMD(iso) {
+      if (!iso) return '';
+      const [, m, d] = iso.split('-');
+      return `${Number(m)}/${Number(d)}`;
+    }
+    function rebuildMonthOptions(preferMonth) {
+      const yearSel  = document.getElementById('srchYear');
+      const monthSel = document.getElementById('srchMonth');
+      const hint     = document.getElementById('cycleHint');
+      const adYear   = Number(yearSel.value);
+      if (!adYear) { monthSel.innerHTML = '<option value="">（請先選年度）</option>'; hint.innerHTML = ''; return; }
+      const rocYear = adYear - 1911;
+      const cycle   = loadCycles()[rocYear];
+      const opts = ['<option value="">請選擇</option>'];
+      if (cycle && cycle.months) {
+        cycle.months.forEach((m, idx) => {
+          const mm = String(idx + 1).padStart(2, '0');
+          const label = (m.startDate && m.endDate)
+            ? `${mm} 月　${fmtMD(m.startDate)} ~ ${fmtMD(m.endDate)}　共${calcWeeks(m.startDate, m.endDate)}週`
+            : `${mm} 月（尚未設定）`;
+          opts.push(`<option value="${mm}">${label}</option>`);
+        });
+        hint.innerHTML = `<span class="text-gray-500">月份起訖週數來自「系統管理 ▸ 年度業績統計週次」（民國 ${rocYear} 年）</span>`;
+      } else {
+        for (let m = 1; m <= 12; m++) {
+          const mm = String(m).padStart(2, '0');
+          opts.push(`<option value="${mm}">${mm} 月</option>`);
+        }
+        hint.innerHTML = `<span class="text-orange-600">⚠️ 民國 ${rocYear} 年（西元 ${adYear}）尚未設定週次，<a href="annual-cycle-setting.html" class="underline font-medium">前往設定 →</a></span>`;
+      }
+      monthSel.innerHTML = opts.join('');
+      if (preferMonth) monthSel.value = preferMonth;
+    }
 
+    // 初始：預設西元 2026 / 05 月（對應第一筆示意資料）
+    document.getElementById('srchYear').value = '2026';
+    rebuildMonthOptions('05');
+    document.getElementById('srchYear').addEventListener('change', () => rebuildMonthOptions());
+
+    // 新增：以月為單位，導向 estimate-cost-edit.html
     document.getElementById('btnNew').addEventListener('click', function () {
-      const period = document.getElementById('srchPeriod').value;
-      const month  = period.slice(0, 2);
       const p = new URLSearchParams({
         mode:     'new',
         building: document.getElementById('srchBldg').value,
         year:     document.getElementById('srchYear').value,
-        month:    month,
-        period:   period
+        month:    document.getElementById('srchMonth').value
       });
       location.href = 'estimate-cost-edit.html?' + p;
     });

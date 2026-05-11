@@ -34,6 +34,23 @@
     .col-no   { position: sticky; left: 12px; z-index: 2; background: white; }
     .col-name { position: sticky; left: 62px; z-index: 2; background: white;
                 box-shadow: 2px 0 4px rgba(0,0,0,0.08); }
+
+    /* ── 編輯模式：cell 內的 input ── */
+    .cell-input {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      text-align: right;
+      padding: 2px 4px;
+      font-size: inherit;
+      color: inherit;
+      box-sizing: border-box;
+    }
+    .cell-input:hover  { border-color: #cbd5e1; background: #f8fafc; }
+    .cell-input:focus  { outline: none; border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+    .mc-table td.has-input { padding: 0; }
+    /* 自動計算的 cell（不可編輯，灰底） */
+    .mc-table td.computed { background: #f1f5f9; color: #475569; font-weight: 600; }
   </style>
 </head>
 <body class="content-bg font-sans text-gray-700">
@@ -60,18 +77,52 @@
       <div class="mb-4 flex items-center justify-between">
         <h2 class="text-lg font-bold text-gray-700">
           <a href="media-cost-list.html" class="hover:text-blue-600">媒體執行總表(來人暨成交平均媒體花費)</a> /
-          月媒體執行總表
+          <span id="pageTitle">月媒體執行總表</span>
         </h2>
-        <a href="media-cost-list.html" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300 px-3 py-1.5 rounded text-sm">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表
-        </a>
+        <div class="flex items-center gap-2">
+          <button id="btnSave" class="hidden flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">
+            <i data-lucide="save" class="w-4 h-4"></i> 儲存
+          </button>
+          <a href="media-cost-list.html" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300 px-3 py-1.5 rounded text-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表
+          </a>
+        </div>
       </div>
 
       <!-- 建案/年度/月份 資訊列 -->
-      <div class="bg-white rounded shadow-sm px-6 py-3 mb-4 flex items-center gap-8 text-sm border">
-        <div class="flex items-center gap-2"><span class="text-gray-500">建案</span><span id="lblBldg" class="font-semibold text-gray-800">—</span></div>
-        <div class="flex items-center gap-2"><span class="text-gray-500">年度</span><span id="lblYear" class="font-semibold text-gray-800">—</span></div>
-        <div class="flex items-center gap-2"><span class="text-gray-500">月份</span><span id="lblMonth" class="font-semibold text-gray-800">—</span></div>
+      <div class="bg-white rounded shadow-sm px-6 py-3 mb-4 border">
+        <div class="flex items-center gap-8 text-sm flex-wrap">
+          <!-- view/edit 模式：顯示為文字 -->
+          <div id="labelGroup" class="flex items-center gap-8 flex-wrap">
+            <div class="flex items-center gap-2"><span class="text-gray-500">建案</span><span id="lblBldg" class="font-semibold text-gray-800">—</span></div>
+            <div class="flex items-center gap-2"><span class="text-gray-500">年度</span><span id="lblYear" class="font-semibold text-gray-800">—</span></div>
+            <div class="flex items-center gap-2"><span class="text-gray-500">月份</span><span id="lblMonth" class="font-semibold text-gray-800">—</span></div>
+          </div>
+
+          <!-- new 模式：顯示為可編輯欄位 -->
+          <div id="inputGroup" class="hidden items-center gap-4 flex-wrap">
+            <div class="flex items-center gap-2">
+              <label class="text-gray-500 text-sm">建案</label>
+              <input id="inpBldg" type="text" placeholder="輸入建案名稱" class="border rounded px-3 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-gray-500 text-sm">年度</label>
+              <select id="inpYear" class="border rounded px-3 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-28">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-gray-500 text-sm">月份</label>
+              <select id="inpMonth" class="border rounded px-3 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-72">
+                <option value="">（請先選年度）</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="cycleHint" class="text-xs mt-2"></div>
       </div>
 
       <!-- 主表格：overflow:auto 讓表格容器內捲動，thead sticky top:0 正常運作 -->
@@ -79,19 +130,19 @@
         <div class="text-center font-bold text-base mb-3 text-gray-800">媒體執行總表(來人暨成交平均媒體花費)</div>
 
         <table class="mc-table" id="mainTable">
-          <colgroup>
+          <colgroup id="mainColgroup">
             <col style="width:12px"><col style="width:50px"><col style="width:200px">
-            <col style="width:90px"><col style="width:90px"><col style="width:90px">
+            <col data-col="open" style="width:90px"><col style="width:90px"><col style="width:90px">
             <col style="width:90px"><col style="width:90px"><col style="width:90px">
             <col style="width:90px"><col style="width:70px"><col style="width:90px">
-            <col style="width:90px"><col style="width:70px"><col style="width:90px">
+            <col style="width:70px"><col style="width:90px">
           </colgroup>
           <thead>
             <tr>
               <th class="th-dark" colspan="3" rowspan="2">項目</th>
-              <th class="th-dark" rowspan="2">開案</th>
+              <th class="th-dark" data-col="open" rowspan="2">開案</th>
               <th class="th-dark" colspan="4" id="hWeeks">週次</th>
-              <th class="th-dark" colspan="4">當月累計</th>
+              <th class="th-dark" colspan="3">當月累計</th>
               <th class="th-dark" colspan="3">全案累計</th>
             </tr>
             <tr>
@@ -100,7 +151,6 @@
               <th class="th-mid" id="hW3">第3週</th>
               <th class="th-mid" id="hW4">第4週</th>
               <th class="th-mid">費用</th>
-              <th class="th-mid">本月key-in</th>
               <th class="th-mid">比例</th>
               <th class="th-mid">小計</th>
               <th class="th-mid">費用</th>
@@ -113,61 +163,90 @@
         </table>
       </div>
 
-      <!-- 不含人事薪資管銷 / 薪資+管銷 獨立區塊 -->
-      <div class="bg-gray-100 rounded border border-gray-300 p-4 mt-4 overflow-x-auto">
-        <table class="mc-table" id="salaryTable" style="background:#e8eaed">
-          <thead>
-            <tr>
-              <th class="th-light" style="min-width:200px; text-align:left; padding-left:8px">項目</th>
-              <th class="th-light" style="min-width:90px">開案</th>
-              <th class="th-light" id="hW1s" style="min-width:90px"></th>
-              <th class="th-light" id="hW2s" style="min-width:90px"></th>
-              <th class="th-light" id="hW3s" style="min-width:90px"></th>
-              <th class="th-light" id="hW4s" style="min-width:90px"></th>
-              <th class="th-light" style="min-width:110px">當月累計</th>
-              <th class="th-light" style="min-width:110px">全案累計</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="total-row">
-              <td class="left" style="padding-left:8px">不含人事薪資管銷</td>
-              <td>1,320,000</td>
-              <td>107,500</td><td>156,000</td><td>104,500</td><td>112,500</td>
-              <td>1,800,500</td><td>1,800,500</td>
-            </tr>
-            <tr class="total-row" style="background:#dde2e7">
-              <td class="left" style="padding-left:8px">薪資+管銷</td>
-              <td>—</td>
-              <td>80,000</td><td>80,000</td><td>80,000</td><td>80,000</td>
-              <td>320,000</td><td>320,000</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </main>
   </div>
 
   <script>
-    // ── URL 參數 ──
+    // ── URL 參數與 mode ──
     const p = new URLSearchParams(location.search);
-    document.getElementById('lblBldg').textContent  = p.get('building') || '—';
-    document.getElementById('lblYear').textContent  = p.get('year')     || '—';
-    document.getElementById('lblMonth').textContent = p.get('month')    || '—';
+    const mode = (p.get('mode') || 'view').toLowerCase();  // 'view' | 'edit' | 'new'
+    const isEdit = (mode === 'edit' || mode === 'new');
 
-    // 週次標題
-    const weeks = [
-      p.get('w1') || '第1週',
-      p.get('w2') || '第2週',
-      p.get('w3') || '第3週',
-      p.get('w4') || '第4週',
-    ];
+    let curBldg  = p.get('building') || '';
+    let curYear  = p.get('year')     || '';
+    let curMonth = p.get('month')    || '';
+
+    // 依 mode 切換 header
+    if (mode === 'new') {
+      document.getElementById('pageTitle').textContent = '新增月媒體執行總表';
+      document.getElementById('labelGroup').classList.add('hidden');
+      document.getElementById('inputGroup').classList.remove('hidden');
+      document.getElementById('inputGroup').classList.add('flex');
+      if (curBldg)  document.getElementById('inpBldg').value  = curBldg;
+      if (curYear)  document.getElementById('inpYear').value  = curYear;
+    } else {
+      document.getElementById('pageTitle').textContent = (mode === 'edit') ? '編輯月媒體執行總表' : '月媒體執行總表';
+      document.getElementById('lblBldg').textContent  = curBldg  || '—';
+      document.getElementById('lblYear').textContent  = curYear  || '—';
+      document.getElementById('lblMonth').textContent = curMonth || '—';
+    }
+
+    if (isEdit) document.getElementById('btnSave').classList.remove('hidden');
+
+    // 週次標題（保留原樣，未來可改成依 cycle 帶入）
     ['hW1','hW2','hW3','hW4'].forEach((id, i) => {
-      document.getElementById(id).textContent = weeks[i];
+      document.getElementById(id).textContent = '第' + (i+1) + '週';
     });
-    ['hW1s','hW2s','hW3s','hW4s'].forEach((id, i) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = weeks[i];
-    });
+
+    // ── 串接年度週期設定（new 模式用） ──
+    const CYCLE_KEY = 'newpt_annual_cycles';
+    function loadCycles() {
+      try { return JSON.parse(localStorage.getItem(CYCLE_KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    function calcWeeks(s, e) {
+      if (!s || !e) return '';
+      const ds = new Date(s), de = new Date(e);
+      if (isNaN(ds) || isNaN(de) || de < ds) return '';
+      return Math.ceil((Math.floor((de - ds) / 86400000) + 1) / 7);
+    }
+    function fmtMD(iso) {
+      if (!iso) return '';
+      const [, m, d] = iso.split('-');
+      return `${Number(m)}/${Number(d)}`;
+    }
+    function rebuildNewMonthOptions(preferMonth) {
+      const yearSel  = document.getElementById('inpYear');
+      const monthSel = document.getElementById('inpMonth');
+      const hint     = document.getElementById('cycleHint');
+      const adYear   = Number(yearSel.value);
+      if (!adYear) { monthSel.innerHTML = '<option value="">（請先選年度）</option>'; hint.innerHTML = ''; return; }
+      const rocYear = adYear - 1911;
+      const cycle = loadCycles()[rocYear];
+      const opts = ['<option value="">請選擇</option>'];
+      if (cycle && cycle.months) {
+        cycle.months.forEach((m, idx) => {
+          const mm = String(idx + 1).padStart(2, '0');
+          const label = (m.startDate && m.endDate)
+            ? `${mm} 月　${fmtMD(m.startDate)} ~ ${fmtMD(m.endDate)}　共${calcWeeks(m.startDate, m.endDate)}週`
+            : `${mm} 月（尚未設定）`;
+          opts.push(`<option value="${mm}">${label}</option>`);
+        });
+        hint.innerHTML = `<span class="text-gray-500">月份起訖週數來自「系統管理 ▸ 年度業績統計週次」（民國 ${rocYear} 年）</span>`;
+      } else {
+        for (let m = 1; m <= 12; m++) {
+          const mm = String(m).padStart(2, '0');
+          opts.push(`<option value="${mm}">${mm} 月</option>`);
+        }
+        hint.innerHTML = `<span class="text-orange-600">⚠️ 民國 ${rocYear} 年尚未設定週次，<a href="annual-cycle-setting.html" class="underline font-medium">前往設定 →</a></span>`;
+      }
+      monthSel.innerHTML = opts.join('');
+      if (preferMonth) monthSel.value = preferMonth;
+    }
+    if (mode === 'new') {
+      rebuildNewMonthOptions(curMonth);
+      document.getElementById('inpYear').addEventListener('change', () => rebuildNewMonthOptions());
+    }
 
     // ── 費用項目資料 ──
     const ITEMS = [
@@ -216,123 +295,450 @@
       { cat:'',           sub:'',     no:'44',    name:'稅金（佣金/1.05*0.08）' },
     ];
 
-    // 12 cells: 開案+週1-4+當月費用+key-in+當月比例+當月小計+全案費用+全案比例+全案小計
-    const EMPTY_ROW = '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>';
+    // 11 cells: 開案+週1-4+當月費用+當月比例+當月小計+全案費用+全案比例+全案小計
+    const EMPTY_ROW = '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>';
 
-    // 假資料：[開案, 週1, 週2, 週3, 週4, 當月費用, key-in, 當月比例, 當月小計, 全案費用, 全案比例, 全案小計]
+    // 假資料：[開案, 週1, 週2, 週3, 週4, 當月費用, 當月比例, 當月小計, 全案費用, 全案比例, 全案小計]
     const DATA = {
-      '1':     ['850,000','—','—','—','—','850,000','850,000','36.2%','850,000','850,000','36.2%','850,000'],
-      '3':     ['120,000','—','—','—','—','120,000','120,000','5.1%','120,000','120,000','5.1%','120,000'],
-      '4':     ['150,000','—','—','—','—','150,000','150,000','6.4%','150,000','150,000','6.4%','150,000'],
-      '5':     ['200,000','—','—','—','—','200,000','200,000','8.5%','200,000','200,000','8.5%','200,000'],
-      '11':    ['—','33,000','33,000','33,000','33,000','132,000','132,000','5.6%','132,000','132,000','5.6%','132,000'],
-      '14':    ['—','11,000','11,000','11,000','11,000','44,000','44,000','1.9%','44,000','44,000','1.9%','44,000'],
-      '15':    ['—','3,600','3,600','3,600','3,600','14,400','14,400','0.6%','14,400','14,400','0.6%','14,400'],
-      '17':    ['—','800','800','800','800','3,200','3,200','0.1%','3,200','3,200','0.1%','3,200'],
-      '18':    ['—','2,500','2,500','2,500','2,500','10,000','10,000','0.4%','10,000','10,000','0.4%','10,000'],
-      '19':    ['—','25,000','25,000','25,000','25,000','100,000','100,000','4.3%','100,000','100,000','4.3%','100,000'],
-      '25':    ['—','15,000','18,000','12,000','20,000','65,000','65,000','2.8%','65,000','65,000','2.8%','65,000'],
-      '30':    ['—','8,000','8,000','8,000','8,000','32,000','32,000','1.4%','32,000','32,000','1.4%','32,000'],
-      '32':    ['—','5,000','5,000','5,000','5,000','20,000','20,000','0.9%','20,000','20,000','0.9%','20,000'],
-      '35':    ['—','—','5,000','—','—','5,000','5,000','0.2%','5,000','5,000','0.2%','5,000'],
-      '39':    ['—','3,000','3,000','3,000','3,000','12,000','12,000','0.5%','12,000','12,000','0.5%','12,000'],
-      '40.41': ['—','65,000','65,000','65,000','65,000','260,000','260,000','11.1%','260,000','260,000','11.1%','260,000'],
-      '42':    ['—','15,000','15,000','15,000','15,000','60,000','60,000','2.6%','60,000','60,000','2.6%','60,000'],
-      '43':    ['—','—','22,500','—','—','22,500','22,500','1.0%','22,500','22,500','1.0%','22,500'],
-      '44':    ['—','—','18,000','—','—','18,000','18,000','0.8%','18,000','18,000','0.8%','18,000'],
+      '1':     ['850,000','—','—','—','—','850,000','36.2%','850,000','850,000','36.2%','850,000'],
+      '3':     ['120,000','—','—','—','—','120,000','5.1%','120,000','120,000','5.1%','120,000'],
+      '4':     ['150,000','—','—','—','—','150,000','6.4%','150,000','150,000','6.4%','150,000'],
+      '5':     ['200,000','—','—','—','—','200,000','8.5%','200,000','200,000','8.5%','200,000'],
+      '11':    ['—','33,000','33,000','33,000','33,000','132,000','5.6%','132,000','132,000','5.6%','132,000'],
+      '14':    ['—','11,000','11,000','11,000','11,000','44,000','1.9%','44,000','44,000','1.9%','44,000'],
+      '15':    ['—','3,600','3,600','3,600','3,600','14,400','0.6%','14,400','14,400','0.6%','14,400'],
+      '17':    ['—','800','800','800','800','3,200','0.1%','3,200','3,200','0.1%','3,200'],
+      '18':    ['—','2,500','2,500','2,500','2,500','10,000','0.4%','10,000','10,000','0.4%','10,000'],
+      '19':    ['—','25,000','25,000','25,000','25,000','100,000','4.3%','100,000','100,000','4.3%','100,000'],
+      '25':    ['—','15,000','18,000','12,000','20,000','65,000','2.8%','65,000','65,000','2.8%','65,000'],
+      '30':    ['—','8,000','8,000','8,000','8,000','32,000','1.4%','32,000','32,000','1.4%','32,000'],
+      '32':    ['—','5,000','5,000','5,000','5,000','20,000','0.9%','20,000','20,000','0.9%','20,000'],
+      '35':    ['—','—','5,000','—','—','5,000','0.2%','5,000','5,000','0.2%','5,000'],
+      '39':    ['—','3,000','3,000','3,000','3,000','12,000','0.5%','12,000','12,000','0.5%','12,000'],
+      '40.41': ['—','65,000','65,000','65,000','65,000','260,000','11.1%','260,000','260,000','11.1%','260,000'],
+      '42':    ['—','15,000','15,000','15,000','15,000','60,000','2.6%','60,000','60,000','2.6%','60,000'],
+      '43':    ['—','—','22,500','—','—','22,500','1.0%','22,500','22,500','1.0%','22,500'],
+      '44':    ['—','—','18,000','—','—','18,000','0.8%','18,000','18,000','0.8%','18,000'],
     };
 
-    function dataRow(d) {
-      return d.map(v => `<td>${v}</td>`).join('');
+    // ====== Cell 渲染（依 mode 切換靜態/輸入） ======
+    function escHTML(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+    // edit 模式下將 '—' 視為空字串，方便輸入；view 模式下空值顯示 '—'
+    // opts.computed = true → 自動計算欄位（不可編輯）
+    function cell(value, loc, opts = {}) {
+      const v = (value == null || value === '—') ? '' : value;
+      const computed = opts.computed === true;
+      if (isEdit && !computed) {
+        return `<td class="has-input" data-loc="${loc}"><input class="cell-input" data-loc="${loc}" type="text" value="${escHTML(v)}" placeholder="—"></td>`;
+      }
+      const cls = computed && isEdit ? ' class="computed"' : '';
+      return `<td data-loc="${loc}"${cls}>${v || '—'}</td>`;
+    }
+    function cellSpan(value, loc, span, opts = {}) {
+      const v = (value == null || value === '—') ? '' : value;
+      const computed = opts.computed === true;
+      if (isEdit && !computed) {
+        return `<td class="has-input" data-loc="${loc}" colspan="${span}"><input class="cell-input" data-loc="${loc}" type="text" value="${escHTML(v)}" placeholder="—"></td>`;
+      }
+      const cls = computed && isEdit ? ' class="computed"' : '';
+      return `<td data-loc="${loc}" colspan="${span}"${cls}>${v || '—'}</td>`;
+    }
+    // 一般資料列：傳入 computedCols 陣列指定哪些欄位是自動計算（顯示為灰底唯讀）
+    // 若 isFirstMonth=false，跳過 col 0（開案欄）
+    function dataRowFromArr(arr, locPrefix, computedCols = []) {
+      const startIdx = isFirstMonth ? 0 : 1;
+      let html = '';
+      for (let i = startIdx; i < arr.length; i++) {
+        html += cell(arr[i] || '', `${locPrefix}|${i}`, { computed: computedCols.includes(i) });
+      }
+      return html;
+    }
+    // 整列都是自動計算
+    const ALL_COMPUTED = [0,1,2,3,4,5,6,7,8,9,10];
+    // 一般 item / stats 列：當月+全案（cols 5-10）為自動計算
+    const SUMMARY_COMPUTED = [5,6,7,8,9,10];
+
+    // 是否為該建案首次建立的月份（首月才顯示「開案」欄）
+    let isFirstMonth = true;
+    function getEarliestEntryForBuilding(bldg) {
+      if (!bldg) return null;
+      const prefix = `media_cost_${bldg}_`;
+      const list = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) list.push(k.slice(prefix.length));
+      }
+      if (list.length === 0) return null;
+      list.sort();
+      return list[0];   // 例如 "2026_05"
+    }
+    function determineFirstMonth() {
+      if (mode === 'new') {
+        const inp = document.getElementById('inpBldg');
+        const bldg = ((inp && inp.value) || curBldg || '').trim();
+        if (!bldg) return true;
+        return !getEarliestEntryForBuilding(bldg);
+      }
+      if (!curBldg || !curYear || !curMonth) return true;
+      const earliest = getEarliestEntryForBuilding(curBldg);
+      if (!earliest) return true;
+      return earliest === `${curYear}_${curMonth}`;
+    }
+    // 動態加入／移除 colgroup 的 open col 與 thead 的 open th
+    function applyOpenColVisibility() {
+      const colgroup = document.getElementById('mainColgroup');
+      const thead    = document.querySelector('#mainTable thead');
+      if (!colgroup || !thead) return;
+      const openCol = colgroup.querySelector('col[data-col="open"]');
+      const openTh  = thead.querySelector('th[data-col="open"]');
+      if (isFirstMonth) {
+        if (!openCol) {
+          const c = document.createElement('col');
+          c.setAttribute('data-col', 'open');
+          c.style.width = '90px';
+          colgroup.insertBefore(c, colgroup.children[3]);  // 插在前 3 個 label col 之後
+        }
+        if (!openTh) {
+          const th = document.createElement('th');
+          th.className = 'th-dark';
+          th.setAttribute('data-col', 'open');
+          th.setAttribute('rowspan', '2');
+          th.textContent = '開案';
+          const firstRow = thead.querySelector('tr');
+          // 插在「項目」th 之後
+          firstRow.insertBefore(th, firstRow.children[1]);
+        }
+      } else {
+        if (openCol) openCol.remove();
+        if (openTh)  openTh.remove();
+      }
+    }
+
+    // ====== 預設資料（demo） ======
+    // 統計列預設值：週1-4 須有數字，當月+全案會由 recompute 自動覆寫
+    const STATS_DEFAULTS = {
+      '來人組數':   ['0','13','13','13','14','','','','','',''],
+      '成交戶數':   ['0','2','3','2','3','','','','','',''],
+      '週成交總銷': ['0','12,500,000','12,500,000','12,500,000','12,500,000','','','','','',''],
+    };
+    const TOTAL_DEFAULTS = {
+      '純媒體費用小計': ['—','28,000','36,000','25,000','33,000','122,000','5.8%','122,000','122,000','5.8%','122,000'],
+      '總費用合計':     ['1,320,000','187,500','236,000','184,500','192,500','2,120,500','100%','2,120,500','2,120,500','100%','2,120,500'],
+      '預估佣金':       ['—','—','—','—','—','424,100','20%','424,100','424,100','20%','424,100'],
+      '預估淨利':       ['—','—','—','—','—','—','—','—','—','—','—'],
+    };
+    const AVG_DEFAULTS = {
+      '來人': ['—','2,333','2,400','3,125','1,833','2,302/組','40,009/組','2,302/組','40,009/組'],
+      '成交': ['—','14,000','12,000','25,000','8,250','12,200/戶','212,050/戶','12,200/戶','212,050/戶'],
+    };
 
     function buildRows() {
       const tbody = document.getElementById('tableBody');
+      const empty = (mode === 'new');
       let html = '';
 
-      // 統計列（來人/成交/週成交只有當月/全案有值，對齊 Excel）
-      html += `<tr class="stats-row">
-        <td colspan="3" class="left font-semibold">來人組數</td>
-        <td>0</td><td>—</td><td>—</td><td>—</td><td>—</td>
-        <td>53</td><td>—</td><td>—</td><td>—</td>
-        <td>120</td><td>—</td><td>—</td>
-      </tr>`;
-      html += `<tr class="stats-row">
-        <td colspan="3" class="left font-semibold">成交戶數</td>
-        <td>0</td><td>—</td><td>—</td><td>—</td><td>—</td>
-        <td>10</td><td>—</td><td>—</td><td>—</td>
-        <td>22</td><td>—</td><td>—</td>
-      </tr>`;
-      html += `<tr class="stats-row">
-        <td colspan="3" class="left font-semibold">週成交總銷</td>
-        <td>0</td><td>—</td><td>—</td><td>—</td><td>—</td>
-        <td>50,000,000</td><td>—</td><td>—</td><td>—</td>
-        <td>110,000,000</td><td>—</td><td>—</td>
-      </tr>`;
+      // 統計列（每列 11 cells；當月/全案 自動算）
+      ['來人組數','成交戶數','週成交總銷'].forEach(key => {
+        const vals = empty ? Array(11).fill('') : STATS_DEFAULTS[key];
+        html += `<tr class="stats-row"><td colspan="3" class="left font-semibold">${key}</td>${dataRowFromArr(vals, 'stat|'+key, SUMMARY_COMPUTED)}</tr>`;
+      });
 
+      // 費用項目列（當月/全案 自動算）
+      const catColspan = isFirstMonth ? 14 : 13;
+      const subColspan = isFirstMonth ? 13 : 12;
       let prevCat = null, prevSub = null;
       ITEMS.forEach(item => {
         if (item.cat && item.cat !== prevCat) {
-          html += `<tr class="cat-row"><td class="left" colspan="15">${item.cat}</td></tr>`;
+          html += `<tr class="cat-row"><td class="left" colspan="${catColspan}">${item.cat}</td></tr>`;
           prevCat = item.cat; prevSub = null;
         }
         if (item.sub && item.sub !== prevSub) {
-          html += `<tr class="sub-row"><td></td><td class="left" colspan="14">${item.sub}</td></tr>`;
+          html += `<tr class="sub-row"><td></td><td class="left" colspan="${subColspan}">${item.sub}</td></tr>`;
           prevSub = item.sub;
         }
-        const rowData = DATA[item.no] ? dataRow(DATA[item.no]) : EMPTY_ROW;
+        const vals = empty
+          ? Array(11).fill('')
+          : (DATA[item.no] || Array(11).fill(''));
         html += `<tr>
           <td class="col-cat"></td>
           <td class="col-no text-right pr-2">${item.no}</td>
           <td class="col-name left">${item.name}</td>
-          ${rowData}
+          ${dataRowFromArr(vals, 'item|'+item.no, SUMMARY_COMPUTED)}
         </tr>`;
       });
 
-      const totalRow = (label, vals) =>
-        `<tr class="total-row"><td class="left" colspan="3">${label}</td>${vals}</tr>`;
+      // 合計列：純媒體小計 / 總費用合計 / 預估佣金 / 預估淨利 全部自動算
+      ['純媒體費用小計','總費用合計','預估佣金','預估淨利'].forEach(key => {
+        const vals = empty ? Array(11).fill('') : TOTAL_DEFAULTS[key];
+        html += `<tr class="total-row"><td class="left" colspan="3">${key}</td>${dataRowFromArr(vals, 'total|'+key, ALL_COMPUTED)}</tr>`;
+      });
 
-      const tMedia  = '<td>—</td><td>28,000</td><td>36,000</td><td>25,000</td><td>33,000</td><td>122,000</td><td>122,000</td><td>5.8%</td><td>122,000</td><td>122,000</td><td>5.8%</td><td>122,000</td>';
-      const tTotal  = '<td>1,320,000</td><td>187,500</td><td>236,000</td><td>184,500</td><td>192,500</td><td>2,120,500</td><td>2,120,500</td><td>100%</td><td>2,120,500</td><td>2,120,500</td><td>100%</td><td>2,120,500</td>';
-      const tComm   = '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>424,100</td><td>424,100</td><td>20%</td><td>424,100</td><td>424,100</td><td>20%</td><td>424,100</td>';
-      const tProfit = '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>';
-      html += totalRow('純媒體費用小計', tMedia);
-      html += totalRow('總費用合計',     tTotal);
-      html += totalRow('預估佣金',       tComm);
-      html += totalRow('預估淨利',       tProfit);
-
-      // 媒體平均週花費
+      // 媒體平均週花費標題列（label-only，不可編）
+      const avgLabelColspan = isFirstMonth ? 8 : 7;   // 3 label + (1 開案) + 4 週次
       html += `<tr class="th-light" style="font-size:10px">
-        <td colspan="8"></td>
-        <td colspan="2">純媒體平均成本</td>
+        <td colspan="${avgLabelColspan}"></td>
+        <td>純媒體平均成本</td>
         <td colspan="2">總費用平均成本</td>
         <td>純媒體平均成本</td>
         <td colspan="2">總費用平均成本</td>
       </tr>`;
-      html += `<tr class="avg-row">
-        <td class="left" colspan="2" rowspan="2">媒體平均週花費</td>
-        <td class="left">來人</td>
-        <td>—</td>
-        <td>2,333</td><td>2,400</td><td>3,125</td><td>1,833</td>
-        <td colspan="2">2,302/組</td>
-        <td colspan="2">40,009/組</td>
-        <td>2,302/組</td>
-        <td colspan="2">40,009/組</td>
-      </tr>`;
-      html += `<tr class="avg-row">
-        <td class="left">成交</td>
-        <td>—</td>
-        <td>14,000</td><td>12,000</td><td>25,000</td><td>8,250</td>
-        <td colspan="2">12,200/戶</td>
-        <td colspan="2">212,050/戶</td>
-        <td>12,200/戶</td>
-        <td colspan="2">212,050/戶</td>
-      </tr>`;
+      // 媒體平均週花費資料列（來人 / 成交） - 全部自動算
+      ['來人','成交'].forEach((key, rowIdx) => {
+        const vals = empty ? Array(9).fill('') : AVG_DEFAULTS[key];
+        const labelTd = rowIdx === 0
+          ? '<td class="left" colspan="2" rowspan="2">媒體平均週花費</td>'
+          : '';
+        const C = { computed: true };
+        const openCell = isFirstMonth ? cell(vals[0], `avg|${key}|0`, C) : '';
+        html += `<tr class="avg-row">
+          ${labelTd}
+          <td class="left">${key}</td>
+          ${openCell}
+          ${cell(vals[1], `avg|${key}|1`, C)}${cell(vals[2], `avg|${key}|2`, C)}${cell(vals[3], `avg|${key}|3`, C)}${cell(vals[4], `avg|${key}|4`, C)}
+          ${cell(vals[5], `avg|${key}|5`, C)}
+          ${cellSpan(vals[6], `avg|${key}|6`, 2, C)}
+          ${cell(vals[7], `avg|${key}|7`, C)}
+          ${cellSpan(vals[8], `avg|${key}|8`, 2, C)}
+        </tr>`;
+      });
 
       tbody.innerHTML = html;
     }
 
-    buildRows();
+    // ====== 儲存／載入 ======
+    function storageKey(bldg, year, month) {
+      return `media_cost_${bldg}_${year}_${month}`;
+    }
+    function loadSavedData() {
+      if (mode === 'new') return;            // 新增模式：白紙開始
+      if (!curBldg || !curYear || !curMonth) return;
+      const raw = localStorage.getItem(storageKey(curBldg, curYear, curMonth));
+      if (!raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.cells) return;
+        Object.entries(saved.cells).forEach(([loc, val]) => {
+          const inp = document.querySelector(`.cell-input[data-loc="${loc}"]`);
+          if (inp) { inp.value = val; return; }
+          const td = document.querySelector(`td[data-loc="${loc}"]`);
+          if (td) td.textContent = (val === '' || val == null) ? '—' : val;
+        });
+      } catch (e) {
+        console.warn('讀取已儲存資料失敗', e);
+      }
+    }
+    function saveData() {
+      if (mode === 'new') {
+        curBldg  = document.getElementById('inpBldg').value.trim();
+        curYear  = document.getElementById('inpYear').value;
+        curMonth = document.getElementById('inpMonth').value;
+        if (!curBldg)  { alert('請輸入建案名稱'); return; }
+        if (!curYear)  { alert('請選擇年度');     return; }
+        if (!curMonth) { alert('請選擇月份');     return; }
+      }
+      const cells = {};
+      document.querySelectorAll('.cell-input').forEach(inp => {
+        cells[inp.dataset.loc] = inp.value;
+      });
+      const payload = {
+        meta: { building: curBldg, year: curYear, month: curMonth, updatedAt: new Date().toISOString() },
+        cells
+      };
+      localStorage.setItem(storageKey(curBldg, curYear, curMonth), JSON.stringify(payload));
+      alert(`已儲存：${curBldg} / ${curYear} / ${curMonth}`);
+    }
+
+    // ====== 自動計算邏輯 ======
+    // 純媒體小計只加總「媒體費用」分類的項目（item.no 20~32）
+    const MEDIA_NOS = ['20','21','22','23','24','25','26','27','28','29','30','31','32'];
+
+    function num(s) {
+      if (s == null || s === '' || s === '—') return 0;
+      const v = parseFloat(String(s).replace(/[,\s%]/g, ''));
+      return isNaN(v) ? 0 : v;
+    }
+    function fmtNum(n) {
+      if (!n || n === 0) return '';
+      return Math.round(n).toLocaleString('en-US');
+    }
+    function getCellVal(loc) {
+      const inp = document.querySelector(`.cell-input[data-loc="${loc}"]`);
+      if (inp) return inp.value;
+      const td = document.querySelector(`td[data-loc="${loc}"]`);
+      if (!td) return '';
+      const text = td.textContent.trim();
+      return text === '—' ? '' : text;
+    }
+    function setCellVal(loc, val) {
+      const inp = document.querySelector(`.cell-input[data-loc="${loc}"]`);
+      if (inp) { inp.value = val; return; }
+      const td = document.querySelector(`td[data-loc="${loc}"]`);
+      if (td) td.textContent = val || '—';
+    }
+
+    function recompute() {
+      // 1. 每個項目列：當月-費用(5) = 開案+週1+週2+週3+週4；小計(7)=費用；全案-費用(8)=當月-費用；全案-小計(10)=全案-費用
+      ITEMS.forEach(item => {
+        let sum = 0;
+        for (let c = 0; c <= 4; c++) sum += num(getCellVal(`item|${item.no}|${c}`));
+        const s = fmtNum(sum);
+        setCellVal(`item|${item.no}|5`, s);
+        setCellVal(`item|${item.no}|7`, s);
+        setCellVal(`item|${item.no}|8`, s);
+        setCellVal(`item|${item.no}|10`, s);
+      });
+
+      // 2. 統計列：相同邏輯
+      ['來人組數','成交戶數','週成交總銷'].forEach(key => {
+        let sum = 0;
+        for (let c = 0; c <= 4; c++) sum += num(getCellVal(`stat|${key}|${c}`));
+        const s = fmtNum(sum);
+        setCellVal(`stat|${key}|5`, s);
+        setCellVal(`stat|${key}|7`, s);
+        setCellVal(`stat|${key}|8`, s);
+        setCellVal(`stat|${key}|10`, s);
+      });
+
+      // 3. 總費用合計：每欄 = 所有項目該欄之和
+      for (let c = 0; c <= 10; c++) {
+        let sum = 0;
+        ITEMS.forEach(item => sum += num(getCellVal(`item|${item.no}|${c}`)));
+        setCellVal(`total|總費用合計|${c}`, fmtNum(sum));
+      }
+
+      // 4. 純媒體費用小計：每欄 = 媒體類項目該欄之和
+      for (let c = 0; c <= 10; c++) {
+        let sum = 0;
+        MEDIA_NOS.forEach(no => sum += num(getCellVal(`item|${no}|${c}`)));
+        setCellVal(`total|純媒體費用小計|${c}`, fmtNum(sum));
+      }
+
+      // 5. 比例：item-當月-費用 / 總費用合計-當月-費用 × 100%；當月比例(6) = 全案比例(9)
+      const totalMonthly = num(getCellVal(`total|總費用合計|5`));
+      if (totalMonthly > 0) {
+        ITEMS.forEach(item => {
+          const itemFee = num(getCellVal(`item|${item.no}|5`));
+          const pctStr = itemFee > 0 ? (itemFee / totalMonthly * 100).toFixed(1) + '%' : '';
+          setCellVal(`item|${item.no}|6`, pctStr);
+          setCellVal(`item|${item.no}|9`, pctStr);
+        });
+        const mediaFee = num(getCellVal(`total|純媒體費用小計|5`));
+        const mediaPct = mediaFee > 0 ? (mediaFee / totalMonthly * 100).toFixed(1) + '%' : '';
+        setCellVal(`total|純媒體費用小計|6`, mediaPct);
+        setCellVal(`total|純媒體費用小計|9`, mediaPct);
+        setCellVal(`total|總費用合計|6`, '100%');
+        setCellVal(`total|總費用合計|9`, '100%');
+      } else {
+        ITEMS.forEach(item => {
+          setCellVal(`item|${item.no}|6`, '');
+          setCellVal(`item|${item.no}|9`, '');
+        });
+        setCellVal(`total|純媒體費用小計|6`, '');
+        setCellVal(`total|純媒體費用小計|9`, '');
+        setCellVal(`total|總費用合計|6`, '');
+        setCellVal(`total|總費用合計|9`, '');
+      }
+
+      // 6. 預估佣金 = 週成交總銷 × 5%（每欄）
+      const COMM_RATE = 0.05;
+      for (let c = 0; c <= 10; c++) {
+        if (c === 6 || c === 9) continue;  // 比例欄另外處理
+        const sales = num(getCellVal(`stat|週成交總銷|${c}`));
+        setCellVal(`total|預估佣金|${c}`, sales > 0 ? fmtNum(sales * COMM_RATE) : '');
+      }
+      // 預估佣金 比例 = 預估佣金 / 總費用合計 × 100%
+      const commM = num(getCellVal(`total|預估佣金|5`));
+      const commF = num(getCellVal(`total|預估佣金|8`));
+      const totalF = num(getCellVal(`total|總費用合計|8`));
+      setCellVal(`total|預估佣金|6`, totalMonthly > 0 && commM > 0 ? (commM / totalMonthly * 100).toFixed(1) + '%' : '');
+      setCellVal(`total|預估佣金|9`, totalF > 0 && commF > 0 ? (commF / totalF * 100).toFixed(1) + '%' : '');
+
+      // 7. 預估淨利 = 預估佣金 - 總費用合計（每欄）
+      for (let c = 0; c <= 10; c++) {
+        if (c === 6 || c === 9) continue;
+        const comm  = num(getCellVal(`total|預估佣金|${c}`));
+        const total = num(getCellVal(`total|總費用合計|${c}`));
+        const net = comm - total;
+        // 兩者皆 0 → 顯示空白；否則顯示（含負數）
+        setCellVal(`total|預估淨利|${c}`, (comm === 0 && total === 0) ? '' : fmtNum(net));
+      }
+      // 預估淨利 比例 = 預估淨利 / 總費用合計 × 100%
+      const netM = num(getCellVal(`total|預估淨利|5`));
+      const netF = num(getCellVal(`total|預估淨利|8`));
+      setCellVal(`total|預估淨利|6`, totalMonthly > 0 ? (netM / totalMonthly * 100).toFixed(1) + '%' : '');
+      setCellVal(`total|預估淨利|9`, totalF > 0 ? (netF / totalF * 100).toFixed(1) + '%' : '');
+
+      // 7. 媒體平均週花費（來人 / 成交）：
+      //    純媒體平均成本 = 純媒體小計 / 來人(成交) 數
+      //    總費用平均成本 = 總費用合計 / 來人(成交) 數
+      //    avg row 9 cells: 0=開案, 1-4=週1-4, 5=純媒體當月, 6=總費用當月, 7=純媒體全案, 8=總費用全案
+      function fmtAvg(val, suffix) {
+        if (!val || !isFinite(val)) return '';
+        return Math.round(val).toLocaleString('en-US') + suffix;
+      }
+      [['來人','來人組數','/組'], ['成交','成交戶數','/戶']].forEach(([key, statKey, suffix]) => {
+        // col 0 開案：媒體成本 / 統計-開案
+        const open = num(getCellVal(`stat|${statKey}|0`));
+        const mediaOpen = num(getCellVal(`total|純媒體費用小計|0`));
+        setCellVal(`avg|${key}|0`, open > 0 ? fmtAvg(mediaOpen / open, '') : '');
+
+        // col 1-4 週次：純媒體小計-週X / 統計-週X
+        for (let c = 1; c <= 4; c++) {
+          const media = num(getCellVal(`total|純媒體費用小計|${c}`));
+          const stat  = num(getCellVal(`stat|${statKey}|${c}`));
+          setCellVal(`avg|${key}|${c}`, stat > 0 ? Math.round(media / stat).toLocaleString('en-US') : '');
+        }
+
+        // col 5 純媒體平均成本-當月、col 6 總費用平均成本-當月
+        const mediaM = num(getCellVal(`total|純媒體費用小計|5`));
+        const totalM = num(getCellVal(`total|總費用合計|5`));
+        const statM  = num(getCellVal(`stat|${statKey}|5`));
+        setCellVal(`avg|${key}|5`, statM > 0 ? fmtAvg(mediaM / statM, suffix) : '');
+        setCellVal(`avg|${key}|6`, statM > 0 ? fmtAvg(totalM / statM, suffix) : '');
+
+        // col 7 純媒體平均成本-全案、col 8 總費用平均成本-全案
+        const mediaF = num(getCellVal(`total|純媒體費用小計|8`));
+        const totalF = num(getCellVal(`total|總費用合計|8`));
+        const statF  = num(getCellVal(`stat|${statKey}|8`));
+        setCellVal(`avg|${key}|7`, statF > 0 ? fmtAvg(mediaF / statF, suffix) : '');
+        setCellVal(`avg|${key}|8`, statF > 0 ? fmtAvg(totalF / statF, suffix) : '');
+      });
+    }
+
+    // ====== 初始化 ======
+    function renderAll() {
+      isFirstMonth = determineFirstMonth();
+      applyOpenColVisibility();
+      buildRows();
+      loadSavedData();
+      recompute();
+    }
+    renderAll();
+
+    if (isEdit) {
+      // 編輯模式：任何輸入欄變動都即時重算
+      document.getElementById('tableBody').addEventListener('input', (e) => {
+        if (e.target.classList.contains('cell-input')) recompute();
+      });
+    }
+    // NEW 模式：使用者改建案名稱 → 重新偵測首月狀態並重繪
+    if (mode === 'new') {
+      const inpBldg = document.getElementById('inpBldg');
+      if (inpBldg) {
+        let lastBldg = inpBldg.value.trim();
+        inpBldg.addEventListener('input', () => {
+          const v = inpBldg.value.trim();
+          if (v === lastBldg) return;
+          lastBldg = v;
+          const newFirst = determineFirstMonth();
+          if (newFirst !== isFirstMonth) renderAll();
+        });
+      }
+    }
+    const saveBtn = document.getElementById('btnSave');
+    if (saveBtn) saveBtn.addEventListener('click', saveData);
   </script>
   <script>lucide.createIcons();</script>
   <script src="assets/js/sidebar.js"></script>

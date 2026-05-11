@@ -21,6 +21,7 @@
     'media-cost-monthly':   'media-cost-list',
     'estimate-cost-list':   'estimate-cost-list',
     'estimate-cost-edit':   'estimate-cost-list',
+    'annual-cycle-setting': 'annual-cycle-setting',
   };
 
   fetch('assets/partials/sidebar.html?v=' + Date.now())
