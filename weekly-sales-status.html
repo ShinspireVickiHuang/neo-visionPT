@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>銷售狀況分析表 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* 銷售狀況分析表：還原 Excel 單頁彙總的視覺分區 */
+    .ws-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .ws-table th, .ws-table td { border:1px solid #d1d5db; padding:8px 10px; }
+    .ws-label { background:#f3f4f6; font-weight:600; color:#374151; text-align:center; white-space:nowrap; }
+    .ws-val   { text-align:right; }
+    .ws-auto  { background:#f1f5f9; color:#475569; font-weight:600; text-align:right; }  /* 系統自動計算 */
+    .ws-key   { background:#fffbe6; }                                                     /* 重點數字 */
+    .ws-input { border:1px solid #d1d5db; border-radius:3px; padding:3px 6px; width:120px; font-size:13px; text-align:right; background:#fff; }
+    .ws-ro    { background:#e5e7eb; color:#6b7280; cursor:not-allowed; }
+    .ws-sec   { font-weight:700; color:#374151; font-size:13px; margin:18px 0 8px; display:flex; align-items:center; gap:6px; }
+    .ws-note  { font-size:12px; color:#6b7280; line-height:1.9; }
+  </style>
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-3">
+          <a href="weekly-sales-list.html" class="flex items-center gap-1 border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-sm hover:bg-gray-100"><i data-lucide="arrow-left" class="w-4 h-4"></i> 返回列表</a>
+          <h2 class="text-lg font-bold text-gray-700">銷售狀況分析表</h2>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="alert('已儲存（範例）')" class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-5 py-2 rounded text-sm flex items-center gap-1"><i data-lucide="save" class="w-4 h-4"></i> 儲存</button>
+          <a href="weekly-sales-list.html" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded text-sm flex items-center gap-1">取消</a>
+        </div>
+      </div>
+
+      <!-- 表頭資訊條 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+          <div class="text-xl font-bold text-gray-800"><span id="hdrBldg">皇普 MOMA</span>　<span class="text-base font-medium text-gray-500">銷售狀況分析表</span></div>
+          <div class="text-sm text-gray-600">
+            週次：<b class="text-gray-800" id="hdrWeek">113 年度第 17 週</b>　│　日期：<b class="text-gray-800" id="hdrDate">2024/04/29 – 2024/05/05</b>
+            <span class="text-xs text-gray-400 ml-1">（來源：年度週次設定）</span>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400">※ 單位：萬元（取到個位數，不進位）。灰底欄位為系統自動帶入／計算，不可手動修改；黃底為重點數字。</p>
+      </div>
+
+      <!-- 區塊一：總銷／法定預算／來人 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <table class="ws-table" style="max-width:760px;">
+          <tr>
+            <td class="ws-label" style="width:120px;">總銷金額</td>
+            <td class="ws-auto" id="totalSales">451,241</td>
+            <td class="ws-label" style="width:120px;">法定預算</td>
+            <td class="ws-auto ws-key" id="legalBudget">10,829.78</td>
+            <td class="ws-label" style="width:120px;">本週來人</td>
+            <td class="ws-auto" id="visitors" title="來自賞屋管理的客戶人數，不可手動修改">0</td>
+          </tr>
+        </table>
+        <p class="text-xs text-gray-400 mt-2">總銷金額＝銷控表底價加總；法定預算＝總銷金額 × 法定預算%（皇普 MOMA：2.4%，於建案編輯設定）；本週來人來自賞屋管理的客戶人數。</p>
+      </div>
+
+      <!-- 區塊二：戶數／車位 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="ws-sec"><i data-lucide="layout-grid" class="w-4 h-4 text-gray-400"></i> 戶數 / 車位</div>
+        <table class="ws-table">
+          <thead>
+            <tr>
+              <th class="ws-label" style="width:110px;"></th>
+              <th class="ws-label">規劃總數</th>
+              <th class="ws-label">本週成交</th>
+              <th class="ws-label">退戶</th>
+              <th class="ws-label">累計</th>
+              <th class="ws-label">剩餘</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ws-label">戶</td>
+              <td class="ws-auto" id="planH">299</td>
+              <td class="ws-val" id="weekDealH">0</td>
+              <td class="ws-val" id="returnH">0</td>
+              <td class="ws-auto" id="cumH">0</td>
+              <td class="ws-auto" id="remainH">299</td>
+            </tr>
+            <tr>
+              <td class="ws-label">車位</td>
+              <td class="ws-auto" id="planP">302</td>
+              <td class="ws-val" id="weekDealP">0</td>
+              <td class="ws-val" id="returnP">0</td>
+              <td class="ws-auto" id="cumP">0</td>
+              <td class="ws-auto" id="remainP">302</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="text-xs text-gray-400 mt-2">本週成交／退戶／累計來自銷控表；剩餘＝規劃總數 − 累計。退戶會連動回沖佣金與稅金（屬跨週異動）。</p>
+      </div>
+
+      <!-- 區塊三：銷售金額 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="ws-sec"><i data-lucide="dollar-sign" class="w-4 h-4 text-gray-400"></i> 銷售金額</div>
+        <table class="ws-table" style="max-width:920px;">
+          <tr>
+            <td class="ws-label" style="width:120px;">本週銷售金額</td>
+            <td class="ws-auto" id="weekSalesAmt" style="width:140px;">0</td>
+            <td class="ws-label" style="width:120px;">累計銷售金額</td>
+            <td class="ws-auto" id="cumSalesAmt" style="width:140px;">0</td>
+            <td class="ws-label" style="width:120px;">未售銷售金額</td>
+            <td class="ws-auto" id="unsoldAmt" style="width:140px;">451,241</td>
+            <td class="ws-label" style="width:90px;">超價</td>
+            <td class="ws-auto" id="overprice">0</td>
+          </tr>
+        </table>
+        <p class="text-xs text-gray-400 mt-2">未售銷售金額＝總銷 − 累計銷售金額；超價＝合約總價 − 總銷價。</p>
+      </div>
+
+      <!-- 區塊四：佣金 / 執行費用 / 盈虧 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="ws-sec"><i data-lucide="trending-up" class="w-4 h-4 text-gray-400"></i> 可請佣金 / 執行費用 / 盈虧</div>
+        <table class="ws-table" style="max-width:760px;">
+          <thead>
+            <tr>
+              <th class="ws-label" style="width:160px;"></th>
+              <th class="ws-label">可請佣金</th>
+              <th class="ws-label">執行費用</th>
+              <th class="ws-label">盈虧</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="ws-label">本週</td><td class="ws-auto ws-key" id="commW">0</td><td class="ws-auto" id="costW">0</td><td class="ws-auto" id="profitW">0</td></tr>
+            <tr><td class="ws-label">本月</td><td class="ws-auto" id="commM">0</td><td class="ws-auto" id="costM">0</td><td class="ws-auto" id="profitM">0</td></tr>
+            <tr><td class="ws-label">113 年度累計</td><td class="ws-auto" id="commY">0</td><td class="ws-auto" id="costY">0</td><td class="ws-auto" id="profitY">0</td></tr>
+            <tr><td class="ws-label">累計（全案）</td><td class="ws-auto" id="commT">0</td><td class="ws-auto" id="costT">0</td><td class="ws-auto" id="profitT">0</td></tr>
+          </tbody>
+        </table>
+        <table class="ws-table mt-3" style="max-width:760px;">
+          <tr>
+            <td class="ws-label" style="width:160px;">已請佣金</td>
+            <td><input type="number" id="claimedComm" class="ws-input" placeholder="0"></td>
+            <td class="ws-label" style="width:120px;">未請佣金</td>
+            <td class="ws-auto" id="unclaimedComm" style="width:140px;">0</td>
+            <td class="ws-label" style="width:140px;">113 年度累計銷售</td>
+            <td class="ws-auto" id="cumSalesYear">0</td>
+          </tr>
+        </table>
+        <p class="text-xs text-gray-400 mt-2">
+          本週可請佣金＝當週成交各戶（可請佣金% × 底價）加總（佣金率每戶可能不同，來自銷控表）；
+          執行費用整包取自媒體執行總表；盈虧＝可請佣金 − 執行費用；未請佣金＝累計可請佣金 − 已請佣金。
+        </p>
+      </div>
+
+      <!-- 區塊五：關係戶／折佣戶／未售實品屋／累計簽約 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="ws-sec"><i data-lucide="users" class="w-4 h-4 text-gray-400"></i> 關係戶 / 折佣戶 / 實品屋 / 簽約</div>
+        <table class="ws-table">
+          <thead>
+            <tr>
+              <th class="ws-label"></th>
+              <th class="ws-label">戶數</th>
+              <th class="ws-label">車位</th>
+              <th class="ws-label">折佣金額</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="ws-label" style="width:140px;">關係戶</td><td class="ws-val" id="relatedH">0</td><td class="ws-val" id="relatedP">0</td><td class="ws-val" id="relatedDisc">0</td></tr>
+            <tr><td class="ws-label">折佣戶</td><td class="ws-val" id="discH">0</td><td class="ws-val" id="discP">0</td><td class="ws-val" id="discAmt">0</td></tr>
+          </tbody>
+        </table>
+        <table class="ws-table mt-3" style="max-width:760px;">
+          <tr>
+            <td class="ws-label" style="width:140px;">未售實品屋戶數</td>
+            <td class="ws-val" id="modelH" style="width:120px;">0</td>
+            <td class="ws-label" style="width:140px;">未售實品屋金額</td>
+            <td class="ws-val" id="modelAmt" style="width:120px;">0</td>
+            <td class="ws-label" style="width:140px;">累計簽約戶數/車位</td>
+            <td class="ws-val" id="signedHP">0 / 0</td>
+          </tr>
+        </table>
+        <p class="text-xs text-gray-400 mt-2">關係戶折佣、折佣戶來自銷控表的可請佣金% 計算（已含於佣金率，不另扣）。</p>
+      </div>
+
+      <!-- 區塊六：備註與規則 -->
+      <div class="bg-white rounded shadow-sm p-5 mb-4">
+        <div class="ws-sec"><i data-lucide="info" class="w-4 h-4 text-gray-400"></i> 備註與計算規則</div>
+        <textarea rows="2" class="w-full border rounded px-3 py-2 bg-gray-50 text-sm mb-3" placeholder="本週異動說明（戶數、車位、總銷、費用等異動須於此說明，以便查對）"></textarea>
+        <div class="ws-note">
+          ※ 公司管銷前 6 個月提列至累計執行費用，後續按週每週提列至「本週執行費用」。<span class="text-orange-500">（提列規則待客戶確認）</span><br>
+          ※ 每週銷售金額係依實際可請領佣金之金額計算。<br>
+          ※ 以萬元為單位，取到個位數（例：1,234,567 顯示為 123.4567），不進位，以免造成數字誤差。<span class="text-blue-500">（線上化後單位統一改用「元」）</span><br>
+          ※ 當週若有任何異動（戶數、車位、總銷、費用等）必須計算於當週內，並請確實於上方說明，以便查對數據。<br>
+          ※ 新開個案之成本須於開案第一週一次提列於「當週費用」內（接待中心、企劃、CF 製作、DM 製作…等）。
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // 新增/編輯/查看共用：依 URL 參數「建案＋年度（民國）＋週次」動態帶入表頭
+    (function initHeader() {
+      const q = new URLSearchParams(location.search);
+      const bldg = q.get('building');
+      const rocYear = q.get('year');
+      const week = q.get('week');
+
+      if (bldg) document.getElementById('hdrBldg').textContent = bldg;
+      if (rocYear && week) {
+        document.getElementById('hdrWeek').textContent = `${rocYear} 年度第 ${week} 週`;
+        const dateEl = document.getElementById('hdrDate');
+        const range = calcWeekRange(rocYear, week);
+        dateEl.innerHTML = range || '<span class="text-orange-500">尚未設定此年度週次（請至系統管理 ▸ 年度業績統計週次）</span>';
+      }
+    })();
+
+    // 第 N 週起訖：年度起算日（年度週次設定第1月起日）＋(週次−1)×7，迄＝起＋6
+    function calcWeekRange(rocYear, week) {
+      if (!rocYear || !week) return '';
+      let cycles;
+      try { cycles = JSON.parse(localStorage.getItem('newpt_annual_cycles') || '{}'); }
+      catch (e) { return ''; }
+      const y = cycles[rocYear];
+      if (!y || !y.months || !y.months[0] || !y.months[0].startDate) return '';
+      const start0 = new Date(y.months[0].startDate);
+      if (isNaN(start0)) return '';
+      const s = new Date(start0); s.setDate(s.getDate() + (Number(week) - 1) * 7);
+      const e = new Date(s);      e.setDate(e.getDate() + 6);
+      const f = d => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+      return `${f(s)} – ${f(e)}`;
+    }
+
+    // ============================================================
+    // 資料串接（原型）：公式即時計算為真；資料源用 demo，讀到 localStorage 即覆蓋
+    //   ─ 總銷／成交／佣金率：銷控表（key: salesctl_{建案}）
+    //   ─ 執行費用：媒體執行總表（key: media_cost_{建案}_{西元年}_{月}，取對應週欄）
+    //   ─ 本週來人：賞屋管理（key: house_visit_{建案}_{年}_{週}）
+    //   ─ 法定預算%：建案編輯（key: building_{建案}.legalBudgetPct）
+    // ============================================================
+    const DATA = {
+      planUnits: 299, planParks: 302,
+      totalSalesBase: 451241,     // 規劃底價加總＝總銷（萬）
+      legalBudgetPct: 2.4,        // 建案法定預算%
+      visitors: 86,               // 本週來人（賞屋管理）
+      week: {
+        dealUnits: 3, dealParks: 2, returnUnits: 0, returnParks: 0,
+        // 當週成交各戶（成交額、可請佣金%）；佣金率每戶可能不同（來自銷控表）
+        deals: [ {amt:5000,pct:6}, {amt:4000,pct:6}, {amt:3000,pct:4.8}, {amt:200,pct:6}, {amt:150,pct:6} ]
+      },
+      month: { comm: 2800 },                                   // 本月累計可請佣金
+      year:  { comm: 6000,  salesAmt: 120000 },                // 113 年度累計
+      cum:   { comm: 8400,  salesAmt: 168000, dealUnits: 52, dealParks: 48 }, // 全案累計
+      exec:  { week: 180, month: 900, year: 2600, cum: 3500 }, // 執行費用（整包取自媒體執行總表）
+      claimed: 5000,                                           // 已請佣金（人工，可改）
+      related:  { units: 2, parks: 1, disc: 120 },             // 關係戶
+      discount: { units: 1, parks: 0, amt: 60 },               // 折佣戶
+      modelHouse: { units: 1, amt: 800 },                      // 未售實品屋
+      overprice: 350                                           // 超價＝合約總價−總銷價
+    };
+
+    const fmt = n => (n === null || n === undefined || n === '—')
+      ? '—'
+      : Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (typeof v === 'number') ? fmt(v) : v; };
+    const setProfit = (id, v) => {
+      const el = document.getElementById(id); if (!el) return;
+      el.textContent = fmt(v);
+      el.style.color = (typeof v === 'number' && v < 0) ? '#dc2626' : '#16a34a';
+    };
+
+    function renderData() {
+      const D = DATA;
+      const weekSales = D.week.deals.reduce((s, d) => s + d.amt, 0);
+      const weekComm  = D.week.deals.reduce((s, d) => s + d.amt * d.pct / 100, 0);
+      const legalBudget = D.totalSalesBase * D.legalBudgetPct / 100;
+
+      // 區塊一
+      set('totalSales', D.totalSalesBase);
+      set('legalBudget', legalBudget);
+      set('visitors', D.visitors);
+
+      // 區塊二：戶／車（剩餘＝規劃−累計）
+      set('planH', D.planUnits); set('weekDealH', D.week.dealUnits); set('returnH', D.week.returnUnits);
+      set('cumH', D.cum.dealUnits); set('remainH', D.planUnits - D.cum.dealUnits);
+      set('planP', D.planParks); set('weekDealP', D.week.dealParks); set('returnP', D.week.returnParks);
+      set('cumP', D.cum.dealParks); set('remainP', D.planParks - D.cum.dealParks);
+
+      // 區塊三：銷售金額（未售＝總銷−累計）
+      set('weekSalesAmt', weekSales);
+      set('cumSalesAmt', D.cum.salesAmt);
+      set('unsoldAmt', D.totalSalesBase - D.cum.salesAmt);
+      set('overprice', D.overprice);
+
+      // 區塊四：佣金／執行費用／盈虧（盈虧＝可請佣金−執行費用）
+      set('commW', weekComm);     set('costW', D.exec.week);  setProfit('profitW', weekComm - D.exec.week);
+      set('commM', D.month.comm); set('costM', D.exec.month); setProfit('profitM', D.month.comm - D.exec.month);
+      set('commY', D.year.comm);  set('costY', D.exec.year);  setProfit('profitY', D.year.comm - D.exec.year);
+      set('commT', D.cum.comm);   set('costT', D.exec.cum);   setProfit('profitT', D.cum.comm - D.exec.cum);
+      set('cumSalesYear', D.year.salesAmt);
+
+      // 已請／未請佣金（未請＝累計可請−已請；已請可手動改，即時重算）
+      const claimedEl = document.getElementById('claimedComm');
+      claimedEl.value = D.claimed;
+      const recalcUnclaimed = () => set('unclaimedComm', D.cum.comm - (Number(claimedEl.value) || 0));
+      claimedEl.addEventListener('input', recalcUnclaimed);
+      recalcUnclaimed();
+
+      // 區塊五：關係戶／折佣戶／實品屋／簽約
+      set('relatedH', D.related.units); set('relatedP', D.related.parks); set('relatedDisc', D.related.disc);
+      set('discH', D.discount.units); set('discP', D.discount.parks); set('discAmt', D.discount.amt);
+      set('modelH', D.modelHouse.units); set('modelAmt', D.modelHouse.amt);
+      set('signedHP', `${D.cum.dealUnits} / ${D.cum.dealParks}`);
+    }
+    renderData();
+  </script>
+  <script>lucide.createIcons();</script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>
