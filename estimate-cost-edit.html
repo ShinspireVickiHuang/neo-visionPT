@@ -108,18 +108,18 @@
           <div class="w-px h-5 bg-gray-300 hidden sm:block"></div>
           <div class="flex items-center gap-2">
             <label class="text-gray-500 font-medium whitespace-nowrap">統計期間(起)</label>
-            <input type="date" id="periodStart"
-              class="border rounded px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            <input type="date" id="periodStart" readonly title="由年度週期設定自動帶入，不可手動修改"
+              class="border rounded px-2 py-1 bg-gray-100 text-sm text-gray-600 cursor-not-allowed outline-none" style="pointer-events:none;">
           </div>
           <div class="flex items-center gap-2">
             <label class="text-gray-500 font-medium whitespace-nowrap">統計期間(迄)</label>
-            <input type="date" id="periodEnd"
-              class="border rounded px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            <input type="date" id="periodEnd" readonly title="由年度週期設定自動帶入，不可手動修改"
+              class="border rounded px-2 py-1 bg-gray-100 text-sm text-gray-600 cursor-not-allowed outline-none" style="pointer-events:none;">
           </div>
           <div class="flex items-center gap-2">
             <label class="text-gray-500 font-medium whitespace-nowrap">當月銷售金額(元)</label>
-            <input type="number" id="salesAmt" readonly title="由銷控表銷售資料自動帶入"
-              class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-sm text-right w-36 text-blue-700 cursor-not-allowed outline-none">
+            <input type="number" id="salesAmt" readonly title="由銷控表銷售資料自動帶入，不可手動修改"
+              class="border rounded px-2 py-1 bg-gray-100 text-sm text-right w-36 text-gray-600 cursor-not-allowed outline-none" style="pointer-events:none;">
           </div>
         </div>
       </div>
@@ -173,6 +173,14 @@
           <span id="historyStatusBadge"></span>
         </div>
         <ol id="timelineList" class="relative border-l-2 border-gray-200 ml-2 space-y-5 pl-5 py-1"></ol>
+      </div>
+
+      <!-- 跨週異動調整紀錄（自動帶入自媒體執行總表；被退回重送時一併附上） -->
+      <div id="adjRecord" class="hidden bg-white rounded shadow-sm p-5 mb-4">
+        <h3 class="text-base font-bold text-gray-700 flex items-center gap-2 mb-3">
+          <i data-lucide="git-compare" class="w-5 h-5 text-green-600"></i> 跨週異動調整紀錄（本期）
+        </h3>
+        <div id="adjRecordBody"></div>
       </div>
 
     </main>
@@ -518,6 +526,43 @@
       document.getElementById('reviewHistory').classList.remove('hidden');
     }
     renderReviewHistory();
+
+    // ====== 跨週異動調整紀錄（自動帶入：讀媒體執行總表所存的異動）======
+    function renderAdjRecord() {
+      let adjs = [];
+      try {
+        const raw = localStorage.getItem(`media_cost_adj_${building}_${year}_${month}`);
+        if (raw) adjs = JSON.parse(raw);
+      } catch (e) {}
+      // 尚無儲存時用示意資料（讓流程看得到）
+      if (!adjs.length) {
+        adjs = [{ itemNo:'30', itemName:'印刷品', originWeek:1, oldVal:0, newVal:10000, reason:'第1週印刷品漏記，核對後補列' }];
+      }
+      const rows = adjs.map(a => {
+        const d = (Number(a.newVal) || 0) - (Number(a.oldVal) || 0);
+        const applied = Number(a.originWeek) + 1;
+        return `<tr>
+          <td class="border p-2">${a.itemName || a.itemNo}</td>
+          <td class="border p-2 text-center">第${a.originWeek}週 → 第${applied}週</td>
+          <td class="border p-2 text-right">${(Number(a.oldVal) || 0).toLocaleString()}</td>
+          <td class="border p-2 text-right">${(Number(a.newVal) || 0).toLocaleString()}</td>
+          <td class="border p-2 text-right font-semibold ${d >= 0 ? 'text-green-600' : 'text-red-600'}">${d >= 0 ? '＋' : '－'}${Math.abs(d).toLocaleString()}</td>
+          <td class="border p-2">${a.reason || '—'}</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('adjRecordBody').innerHTML = `
+        <p class="text-xs text-gray-500 mb-2">本期媒體費用的跨週異動結轉紀錄（來源：媒體執行總表）。被退回重送時將一併附上，向會計說明調整科目與原因。</p>
+        <table class="w-full border-collapse text-sm">
+          <thead><tr class="bg-gray-50">
+            <th class="border p-2 text-left">科目</th><th class="border p-2">發生週 → 認列週</th>
+            <th class="border p-2 text-right">原費用</th><th class="border p-2 text-right">調整後</th>
+            <th class="border p-2 text-right">差額</th><th class="border p-2 text-left">原因</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      document.getElementById('adjRecord').classList.remove('hidden');
+    }
+    if (typeof mode === 'undefined' || mode !== 'new') renderAdjRecord();
 
     function saveCost() {
       // 真正寫入 localStorage（讓下個月可讀取作前期累計）

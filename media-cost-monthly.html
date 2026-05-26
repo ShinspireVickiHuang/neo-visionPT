@@ -51,6 +51,7 @@
     .mc-table td.has-input { padding: 0; }
     /* 自動計算的 cell（不可編輯，灰底） */
     .mc-table td.computed { background: #f1f5f9; color: #475569; font-weight: 600; }
+    .mc-table .adj-flag { display:block; margin-top:2px; padding-top:2px; border-top:1px dashed #86efac; color:#15803d; font-size:9px; font-weight:bold; line-height:1.2; cursor:help; white-space:nowrap; }
   </style>
 </head>
 <body class="content-bg font-sans text-gray-700">
@@ -511,6 +512,19 @@
     function storageKey(bldg, year, month) {
       return `media_cost_${bldg}_${year}_${month}`;
     }
+    // 跨週異動結轉紀錄的儲存 key（供預估費用明細表讀取）
+    function adjStorageKey(bldg, year, month) {
+      return `media_cost_adj_${bldg}_${year}_${month}`;
+    }
+    function loadAdjustments() {
+      const demo = [{ itemNo:'30', itemName:'印刷品', originWeek:1, appliedWeek:2, oldVal:0, newVal:10000, reason:'第1週印刷品漏記，核對後補列' }];
+      if (mode === 'new' || !curBldg || !curYear || !curMonth) return demo;
+      try {
+        const raw = localStorage.getItem(adjStorageKey(curBldg, curYear, curMonth));
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return demo;
+    }
     function loadSavedData() {
       if (mode === 'new') return;            // 新增模式：白紙開始
       if (!curBldg || !curYear || !curMonth) return;
@@ -547,6 +561,8 @@
         cells
       };
       localStorage.setItem(storageKey(curBldg, curYear, curMonth), JSON.stringify(payload));
+      // 一併存「跨週異動結轉紀錄」，供預估費用明細表自動帶入
+      localStorage.setItem(adjStorageKey(curBldg, curYear, curMonth), JSON.stringify(MEDIA_ADJUSTMENTS));
       alert(`已儲存：${curBldg} / ${curYear} / ${curMonth}`);
     }
 
@@ -579,6 +595,14 @@
     }
 
     function recompute() {
+      // 0. 獎金（no:43）：底價（週成交總銷）× 5‰ 系統預設帶入；使用者手動改過(touched)則保留不覆寫
+      const BONUS_RATE = 0.005;
+      for (let c = 0; c <= 4; c++) {
+        const el = document.querySelector(`.cell-input[data-loc="item|43|${c}"]`);
+        if (el && el.dataset.touched === '1') continue;
+        const sales = num(getCellVal(`stat|週成交總銷|${c}`));
+        setCellVal(`item|43|${c}`, sales > 0 ? fmtNum(sales * BONUS_RATE) : '');
+      }
       // 1. 每個項目列：當月-費用(5) = 開案+週1+週2+週3+週4；小計(7)=費用；全案-費用(8)=當月-費用；全案-小計(10)=全案-費用
       ITEMS.forEach(item => {
         let sum = 0;
@@ -601,17 +625,28 @@
         setCellVal(`stat|${key}|10`, s);
       });
 
-      // 3. 總費用合計：每欄 = 所有項目該欄之和
+      // 跨週異動結轉：差額認列於「認列週欄 + 當月(5)/小計(7)/全案(8,10)」，併入下方合計
+      const adjContrib = (c, mediaOnly) => MEDIA_ADJUSTMENTS.reduce((t, a) => {
+        if (mediaOnly && !MEDIA_NOS.includes(String(a.itemNo))) return t;
+        const applied = Number(a.originWeek) + 1;
+        const d = (Number(a.newVal) || 0) - (Number(a.oldVal) || 0);
+        const hit = (c === applied) || c === 5 || c === 7 || c === 8 || c === 10;
+        return t + (hit ? d : 0);
+      }, 0);
+
+      // 3. 總費用合計：每欄 = 所有項目該欄之和 ＋ 跨週異動（含自己key與異動）
       for (let c = 0; c <= 10; c++) {
         let sum = 0;
         ITEMS.forEach(item => sum += num(getCellVal(`item|${item.no}|${c}`)));
+        sum += adjContrib(c, false);
         setCellVal(`total|總費用合計|${c}`, fmtNum(sum));
       }
 
-      // 4. 純媒體費用小計：每欄 = 媒體類項目該欄之和
+      // 4. 純媒體費用小計：每欄 = 媒體類項目該欄之和 ＋ 媒體科目跨週異動
       for (let c = 0; c <= 10; c++) {
         let sum = 0;
         MEDIA_NOS.forEach(no => sum += num(getCellVal(`item|${no}|${c}`)));
+        sum += adjContrib(c, true);
         setCellVal(`total|純媒體費用小計|${c}`, fmtNum(sum));
       }
 
@@ -641,12 +676,15 @@
         setCellVal(`total|總費用合計|9`, '');
       }
 
-      // 6. 預估佣金 = 週成交總銷 × 5%（每欄）
-      const COMM_RATE = 0.05;
-      for (let c = 0; c <= 10; c++) {
-        if (c === 6 || c === 9) continue;  // 比例欄另外處理
-        const sales = num(getCellVal(`stat|週成交總銷|${c}`));
-        setCellVal(`total|預估佣金|${c}`, sales > 0 ? fmtNum(sales * COMM_RATE) : '');
+      // 6. 預估佣金：來自「佣金收入計算」對應週期（讀 commission_建案_年_月）；尚未串接到該期則沿用示意值
+      let commVal = 0;
+      try {
+        const craw = localStorage.getItem(`commission_${curBldg}_${curYear}_${curMonth}`);
+        if (craw) { const cj = JSON.parse(craw); commVal = Number(cj.total) || 0; }
+      } catch (e) {}
+      if (commVal > 0) {
+        // 佣金以「月」為週期對應：填當月累計(5)/小計(7)與全案(8,10)
+        [5, 7, 8, 10].forEach(c => setCellVal(`total|預估佣金|${c}`, fmtNum(commVal)));
       }
       // 預估佣金 比例 = 預估佣金 / 總費用合計 × 100%
       const commM = num(getCellVal(`total|預估佣金|5`));
@@ -707,6 +745,129 @@
       });
     }
 
+    // ====== 跨週異動結轉（可互動；規則：異動發生當週不改帳，差額結轉至「下一週」對應科目認列） ======
+    const MEDIA_ADJUSTMENTS = loadAdjustments();
+    function renderAdjustments() {
+      const diffOf = a => (Number(a.newVal) || 0) - (Number(a.oldVal) || 0);
+      const firstItem = ITEMS.find(it => it.no) || { no:'', name:'' };
+      const itemOpts = sel => ITEMS.filter(it => it.no).map(it => `<option value="${it.no}" ${String(it.no) === String(sel) ? 'selected' : ''}>${it.no} ${it.name}</option>`).join('');
+      const weekOpts = sel => [1,2,3,4].map(w => `<option value="${w}" ${w === Number(sel) ? 'selected' : ''}>第${w}週</option>`).join('');
+      const appliedLabel = ow => (Number(ow) + 1) <= 4 ? `第${Number(ow) + 1}週` : '次月';
+
+      // 結轉認列週的科目格右上角加 ⊕（滑入顯示說明）
+      // 科目有異動時，在該科目列下方插入「跨週異動調整」列（一列 key、一列異動；合計已含此差額）
+      function refreshFlags() {
+        document.querySelectorAll('#tableBody tr.adj-extra-row').forEach(el => el.remove());
+        const byItem = {};
+        MEDIA_ADJUSTMENTS.forEach(a => { if (diffOf(a)) (byItem[a.itemNo] = byItem[a.itemNo] || []).push(a); });
+        const totalM = num(getCellVal(`total|總費用合計|5`));
+        const tdc = 'border:1px solid #ccc;padding:3px 6px;text-align:center;white-space:nowrap;color:#15803d;font-size:11px;background:#f0fdf4;';
+        const f = v => v ? ('＋' + v.toLocaleString()) : '—';
+        Object.keys(byItem).forEach(no => {
+          const c5 = document.querySelector(`#tableBody td[data-loc="item|${no}|5"]`);
+          if (!c5) return;
+          const row1 = c5.closest('tr');
+          const weekAmt = {}; let monthSum = 0;
+          byItem[no].forEach(a => { const w = Number(a.originWeek) + 1; const d = diffOf(a); weekAmt[w] = (weekAmt[w] || 0) + d; monthSum += d; });
+          let cells = '';
+          const startC = isFirstMonth ? 0 : 1;
+          for (let c = startC; c <= 4; c++) cells += `<td style="${tdc}">${weekAmt[c] ? f(weekAmt[c]) : '—'}</td>`;
+          const pct = totalM > 0 ? (monthSum / totalM * 100).toFixed(1) + '%' : '';
+          cells += `<td style="${tdc}">${f(monthSum)}</td><td style="${tdc}">${pct}</td><td style="${tdc}">${f(monthSum)}</td>`;
+          cells += `<td style="${tdc}">${f(monthSum)}</td><td style="${tdc}">${pct}</td><td style="${tdc}">${f(monthSum)}</td>`;
+          const tr = document.createElement('tr');
+          tr.className = 'adj-extra-row';
+          tr.innerHTML = `<td class="col-cat" style="background:#f0fdf4;"></td><td class="col-no" style="background:#f0fdf4;"></td><td class="col-name left" style="background:#f0fdf4;color:#15803d;font-size:11px;">↳ 跨週異動調整</td>${cells}`;
+          row1.insertAdjacentElement('afterend', tr);
+        });
+      }
+
+      const oldBlock = document.getElementById('__adjBlock__');
+      if (oldBlock) oldBlock.remove();
+      document.querySelectorAll('.adj-flag').forEach(el => el.remove());
+      refreshFlags();
+
+      // 查看(view)模式：只看主表結果，不顯示「可登記」的異動明細表
+      if (!isEdit) return;
+
+      const wrap = document.getElementById('mainTableWrap');
+      if (!wrap) return;
+      const cellSt = 'border:1px solid #e2e8f0;padding:6px 10px;';
+      const inSt   = 'border:1px solid #cbd5e1;border-radius:3px;padding:3px 6px;width:90px;text-align:right;font-size:13px;';
+      const reaSt  = 'border:1px solid #cbd5e1;border-radius:3px;padding:3px 6px;width:200px;font-size:13px;';
+      const selSt  = 'border:1px solid #cbd5e1;border-radius:3px;padding:3px 6px;font-size:13px;';
+      const rows = MEDIA_ADJUSTMENTS.map((a, i) => `
+        <tr data-i="${i}">
+          <td style="${cellSt}"><select class="adj-item" data-i="${i}" style="${selSt}">${itemOpts(a.itemNo)}</select></td>
+          <td style="${cellSt}text-align:center;"><select class="adj-week" data-i="${i}" style="${selSt}">${weekOpts(a.originWeek)}</select></td>
+          <td style="${cellSt}text-align:center;color:#64748b;">${appliedLabel(a.originWeek)}</td>
+          <td style="${cellSt}"><input class="adj-old" data-i="${i}" type="number" value="${a.oldVal}" style="${inSt}"></td>
+          <td style="${cellSt}"><input class="adj-new" data-i="${i}" type="number" value="${a.newVal}" style="${inSt}"></td>
+          <td style="${cellSt}text-align:right;font-weight:600;" class="adj-diff" data-i="${i}">—</td>
+          <td style="${cellSt}"><input class="adj-reason" data-i="${i}" type="text" value="${a.reason}" style="${reaSt}"></td>
+          <td style="${cellSt}text-align:center;"><button class="adj-del" data-i="${i}" style="border:1px solid #fca5a5;color:#dc2626;background:#fff;border-radius:3px;padding:2px 8px;font-size:12px;cursor:pointer;">刪除</button></td>
+        </tr>`).join('');
+      const block = document.createElement('div');
+      block.id = '__adjBlock__';
+      block.className = 'bg-white rounded shadow-sm p-4 mt-4';
+      block.innerHTML = `
+        <div style="font-weight:700;font-size:14px;color:#374151;margin-bottom:4px;display:flex;align-items:center;gap:8px;"><span style="color:#16a34a;">⊕</span> 跨週異動結轉明細（可登記上一週誤差，支援多筆）</div>
+        <p style="font-size:12px;color:#94a3b8;margin:0 0 10px;">選科目與發生週、填原費用與調整後，系統自動算差額並結轉至「下一週」；該科目的異動會自動加進主表「當月累計」，並於上方對應週的科目格以 ⊕ 標示。</p>
+        <table style="border-collapse:collapse;font-size:13px;width:100%;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="${cellSt}text-align:left;">科目</th>
+            <th style="${cellSt}">發生週</th>
+            <th style="${cellSt}">結轉認列週</th>
+            <th style="${cellSt}text-align:right;">原費用（元）</th>
+            <th style="${cellSt}text-align:right;">調整後（元）</th>
+            <th style="${cellSt}text-align:right;">差額（元）</th>
+            <th style="${cellSt}text-align:left;">原因</th>
+            <th style="${cellSt}"></th>
+          </tr></thead>
+          <tbody>${rows || `<tr><td colspan="8" style="${cellSt}text-align:center;color:#94a3b8;">尚無異動，點下方「新增一筆」登記</td></tr>`}</tbody>
+        </table>
+        <button id="__adjAddBtn__" style="margin-top:10px;border:1px dashed #16a34a;color:#16a34a;background:#f0fdf4;border-radius:4px;padding:6px 14px;font-size:13px;cursor:pointer;">＋ 新增一筆</button>`;
+      wrap.insertAdjacentElement('afterend', block);
+
+      const redraw = () => { recompute(); renderAdjustments(); };
+
+      function updateRow(i) {
+        const a = MEDIA_ADJUSTMENTS[i];
+        const d = diffOf(a);
+        const diffCell = block.querySelector(`.adj-diff[data-i="${i}"]`);
+        if (diffCell) {
+          diffCell.textContent = (d >= 0 ? '＋' : '－') + Math.abs(d).toLocaleString();
+          diffCell.style.color = d >= 0 ? '#16a34a' : '#dc2626';
+        }
+        refreshFlags();
+      }
+      block.querySelectorAll('.adj-item').forEach(sel => sel.addEventListener('change', e => {
+        const a = MEDIA_ADJUSTMENTS[e.target.dataset.i];
+        a.itemNo = e.target.value;
+        const it = ITEMS.find(x => String(x.no) === String(a.itemNo));
+        a.itemName = it ? it.name : '';
+        a.oldVal = num(getCellVal(`item|${a.itemNo}|${a.originWeek}`));   // 選科目後帶出該發生週的原費用
+        redraw();
+      }));
+      block.querySelectorAll('.adj-week').forEach(sel => sel.addEventListener('change', e => {
+        const a = MEDIA_ADJUSTMENTS[e.target.dataset.i];
+        a.originWeek = Number(e.target.value);
+        a.appliedWeek = a.originWeek + 1;
+        a.oldVal = num(getCellVal(`item|${a.itemNo}|${a.originWeek}`));   // 選週別後帶出該發生週的原費用
+        redraw();
+      }));
+      block.querySelectorAll('.adj-old').forEach(inp => inp.addEventListener('input', e => { MEDIA_ADJUSTMENTS[e.target.dataset.i].oldVal = e.target.value; recompute(); updateRow(e.target.dataset.i); }));
+      block.querySelectorAll('.adj-new').forEach(inp => inp.addEventListener('input', e => { MEDIA_ADJUSTMENTS[e.target.dataset.i].newVal = e.target.value; recompute(); updateRow(e.target.dataset.i); }));
+      block.querySelectorAll('.adj-reason').forEach(inp => inp.addEventListener('input', e => { MEDIA_ADJUSTMENTS[e.target.dataset.i].reason = e.target.value; refreshFlags(); }));
+      block.querySelectorAll('.adj-del').forEach(btn => btn.addEventListener('click', e => { MEDIA_ADJUSTMENTS.splice(Number(e.target.dataset.i), 1); redraw(); }));
+      const addBtn = block.querySelector('#__adjAddBtn__');
+      if (addBtn) addBtn.addEventListener('click', () => {
+        MEDIA_ADJUSTMENTS.push({ itemNo: firstItem.no, itemName: firstItem.name, originWeek:1, appliedWeek:2, oldVal: num(getCellVal(`item|${firstItem.no}|1`)), newVal:0, reason:'' });
+        redraw();
+      });
+      MEDIA_ADJUSTMENTS.forEach((_, i) => updateRow(i));
+    }
+
     // ====== 初始化 ======
     function renderAll() {
       isFirstMonth = determineFirstMonth();
@@ -714,13 +875,18 @@
       buildRows();
       loadSavedData();
       recompute();
+      renderAdjustments();
     }
     renderAll();
 
     if (isEdit) {
       // 編輯模式：任何輸入欄變動都即時重算
       document.getElementById('tableBody').addEventListener('input', (e) => {
-        if (e.target.classList.contains('cell-input')) recompute();
+        if (e.target.classList.contains('cell-input')) {
+          // 獎金科目(no:43)被手動修改 → 標記，往後不再用公式覆寫（可手動覆寫）
+          if (e.target.dataset.loc && e.target.dataset.loc.indexOf('item|43|') === 0) e.target.dataset.touched = '1';
+          recompute(); renderAdjustments();
+        }
       });
     }
     // NEW 模式：使用者改建案名稱 → 重新偵測首月狀態並重繪

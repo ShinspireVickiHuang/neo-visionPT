@@ -258,14 +258,15 @@
     });
 
     function sendForReview(btn) {
-      showConfirm('確定要送出至簽核系統嗎？', '送出後將進入簽核流程，狀態會更新為「審核中」。', () => {
+      const tr = btn.closest('tr');
+      const isRejected = tr && tr.textContent.includes('被退回');
+      const doSend = () => showConfirm('確定要送出至簽核系統嗎？', '送出後將進入簽核流程，狀態會更新為「審核中」。', () => {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span>送審中…';
         btn.classList.remove('bg-gray-700','hover:bg-gray-800');
         btn.classList.add('bg-gray-500','cursor-not-allowed');
         setTimeout(() => {
           showToast('已送至簽核系統，等待簽核中');
-          const tr = btn.closest('tr');
           const sc = tr.querySelector('.status-cell');
           if (sc) sc.innerHTML = '<span class="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">審核中</span>';
           btn.innerHTML = '送審';
@@ -273,6 +274,61 @@
           btn.disabled = true;
         }, 1500);
       });
+      // 被退回 → 重送前先附上「跨週異動調整紀錄」（來源：媒體執行總表）
+      if (isRejected) {
+        const tds = tr.querySelectorAll('td');
+        showAdjustReview(tds[0] && tds[0].textContent.trim(), tds[1] && tds[1].textContent.trim(), tds[2] && tds[2].textContent.trim(), doSend);
+      } else {
+        doSend();
+      }
+    }
+
+    // 被退回重送：顯示本期跨週異動調整紀錄，確認後才送審
+    function showAdjustReview(building, year, month, onOk) {
+      let adjs = [];
+      try {
+        const raw = localStorage.getItem(`media_cost_adj_${building}_${year}_${month}`);
+        if (raw) adjs = JSON.parse(raw);
+      } catch (e) {}
+      if (!adjs.length) {
+        adjs = [{ itemNo:'30', itemName:'印刷品', originWeek:1, oldVal:0, newVal:10000, reason:'第1週印刷品漏記，核對後補列' }];
+      }
+      const cs = 'border:1px solid #e5e7eb;padding:6px 10px;font-size:13px;';
+      const rows = adjs.map(a => {
+        const d = (Number(a.newVal) || 0) - (Number(a.oldVal) || 0);
+        return `<tr>
+          <td style="${cs}">${a.itemName || a.itemNo}</td>
+          <td style="${cs}text-align:center;">第${a.originWeek}週 → 第${Number(a.originWeek) + 1}週</td>
+          <td style="${cs}text-align:right;color:${d >= 0 ? '#16a34a' : '#dc2626'};font-weight:600;">${d >= 0 ? '＋' : '－'}${Math.abs(d).toLocaleString()}</td>
+          <td style="${cs}">${a.reason || '—'}</td>
+        </tr>`;
+      }).join('');
+      const old = document.getElementById('__adjReviewDlg__');
+      if (old) old.remove();
+      const modal = document.createElement('div');
+      modal.id = '__adjReviewDlg__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `<div style="background:#fff;border-radius:8px;width:100%;max-width:640px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden;">
+        <div style="padding:18px 24px;font-weight:bold;font-size:16px;color:#374151;border-bottom:1px solid #e5e7eb;">重送前確認：附上跨週異動調整紀錄</div>
+        <div style="padding:18px 24px;">
+          <div style="background:#fef2f2;border-left:3px solid #ef4444;padding:10px 12px;border-radius:4px;font-size:12px;color:#b91c1c;line-height:1.6;margin-bottom:12px;">此預估費用曾被退回。本期跨週異動調整紀錄（來源：媒體執行總表）將一併送出，向會計說明調整的科目與原因。</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#f9fafb;">
+              <th style="${cs}text-align:left;">科目</th><th style="${cs}">發生週 → 認列週</th>
+              <th style="${cs}text-align:right;">差額</th><th style="${cs}text-align:left;">原因</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="padding:14px 24px;background:#fafafa;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;">
+          <button id="__arCancel__" style="background:#fff;color:#6b7280;border:1px solid #d1d5db;padding:6px 18px;border-radius:4px;cursor:pointer;font-size:13px;">取消</button>
+          <button id="__arOk__" style="background:#a09080;color:#fff;border:0;padding:6px 18px;border-radius:4px;cursor:pointer;font-size:13px;">確認並送審</button>
+        </div></div>`;
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__arCancel__').onclick = close;
+      modal.querySelector('#__arOk__').onclick = () => { close(); onOk(); };
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
     }
 
     function showConfirm(title, message, onOk) {
