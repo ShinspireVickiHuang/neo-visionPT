@@ -165,8 +165,8 @@
         </table>
         <table class="ws-table mt-3" style="max-width:760px;">
           <tr>
-            <td class="ws-label" style="width:160px;">已請佣金<span class="ws-src">佣金收入計算</span></td>
-            <td class="ws-auto" id="claimedComm" style="width:140px;" title="以「佣金收入計算」最終認可（會計核准）數字為準，不可手動修改">0</td>
+            <td class="ws-label" style="width:160px;">已請佣金<span class="ws-src">現場填寫</span></td>
+            <td style="width:140px;"><input type="number" id="claimedComm" class="ws-input ws-key" placeholder="0" title="現場每週提報本週已向業主請領的佣金金額"></td>
             <td class="ws-label" style="width:120px;">未請佣金</td>
             <td class="ws-auto" id="unclaimedComm" style="width:140px;">0</td>
             <td class="ws-label" style="width:140px;">113 年度累計銷售</td>
@@ -175,7 +175,7 @@
         </table>
         <p class="text-xs text-gray-400 mt-2">
           本週可請佣金＝當週成交各戶（可請佣金% × 底價）加總（佣金率每戶可能不同，來自銷控表）；執行費用整包取自媒體執行總表；盈虧＝可請佣金 − 執行費用。<br>
-          <b>已請佣金</b>以<a href="commission-list.html" class="text-blue-600 hover:underline">「佣金收入計算」</a>模組最終認可（會計核准）的金額為準。現場提報的「已請佣金」常與會計實際核准的數字有落差，本表統一以會計核准數字為依據，作為管理層查看用。未請佣金＝累計可請佣金 − 已請佣金（自動）。
+          <b>已請佣金</b>由現場每週提報（本週實際向業主請領的金額）；最新一週的數字會自動帶入<a href="commission-list.html" class="text-blue-600 hover:underline">「佣金收入計算」</a>的「已收回佣金」欄位，供會計勾稽。未請佣金＝累計可請佣金 − 已請佣金（自動）。
         </p>
       </div>
 
@@ -282,7 +282,7 @@
       year:  { comm: 6000,  salesAmt: 120000 },                // 113 年度累計
       cum:   { comm: 8400,  salesAmt: 168000, dealUnits: 52, dealParks: 48 }, // 全案累計
       exec:  { week: 180, month: 900, year: 2600, cum: 3500 }, // 執行費用（整包取自媒體執行總表）
-      claimedApproved: 5000,                                   // 已請佣金（來自佣金收入計算最終認可，唯讀）
+      claimedThisWeek: 5000,                                   // 已請佣金（現場每週手填；最新一週會被佣金收入計算自動帶走）
       related:  { units: 2, parks: 1, disc: 120 },             // 關係戶
       discount: { units: 1, parks: 0, amt: 60 },               // 折佣戶
       modelHouse: { units: 1, amt: 800 },                      // 未售實品屋
@@ -332,8 +332,12 @@
       set('cumSalesYear', D.year.salesAmt);
 
       // 已請佣金：唯讀，數字來自「佣金收入計算」最終認可值；未請＝累計可請−已請
-      set('claimedComm', D.claimedApproved);
-      set('unclaimedComm', D.cum.comm - D.claimedApproved);
+      // 已請佣金：現場手填（input），即時重算未請＝累計可請−已請
+      const claimedEl = document.getElementById('claimedComm');
+      claimedEl.value = D.claimedThisWeek;
+      const recalcUnclaimed = () => set('unclaimedComm', D.cum.comm - (Number(claimedEl.value) || 0));
+      claimedEl.addEventListener('input', recalcUnclaimed);
+      recalcUnclaimed();
 
       // 區塊五：關係戶／折佣戶／實品屋／簽約
       set('relatedH', D.related.units); set('relatedP', D.related.parks); set('relatedDisc', D.related.disc);
