@@ -22,6 +22,7 @@
     .ws-ro    { background:#e5e7eb; color:#6b7280; cursor:not-allowed; }
     .ws-sec   { font-weight:700; color:#374151; font-size:13px; margin:18px 0 8px; display:flex; align-items:center; gap:6px; }
     .ws-note  { font-size:12px; color:#6b7280; line-height:1.9; }
+    .ws-src   { font-size:11px; color:#94a3b8; margin-left:6px; }                          /* 資料來源小標 */
   </style>
 </head>
 <body class="content-bg font-sans text-gray-700">
@@ -50,7 +51,7 @@
           <h2 class="text-lg font-bold text-gray-700">銷售狀況分析表</h2>
         </div>
         <div class="flex gap-2">
-          <button onclick="alert('已儲存（範例）')" class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-5 py-2 rounded text-sm flex items-center gap-1"><i data-lucide="save" class="w-4 h-4"></i> 儲存</button>
+          <button onclick="onSave()" class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-5 py-2 rounded text-sm flex items-center gap-1"><i data-lucide="save" class="w-4 h-4"></i> 儲存</button>
           <a href="weekly-sales-list.html" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded text-sm flex items-center gap-1">取消</a>
         </div>
       </div>
@@ -64,22 +65,26 @@
             <span class="text-xs text-gray-400 ml-1">（來源：年度週次設定）</span>
           </div>
         </div>
-        <p class="text-xs text-gray-400">※ 單位：萬元（取到個位數，不進位）。灰底欄位為系統自動帶入／計算，不可手動修改；黃底為重點數字。</p>
+        <p class="text-xs text-gray-400">※ 單位：萬元（取到個位數，不進位）。灰底欄位為系統自動帶入／計算，不可手動修改；黃底為重點數字；白底為可填寫欄位。</p>
       </div>
 
       <!-- 區塊一：總銷／法定預算／來人 -->
       <div class="bg-white rounded shadow-sm p-5 mb-4">
         <table class="ws-table" style="max-width:760px;">
           <tr>
-            <td class="ws-label" style="width:120px;">總銷金額</td>
-            <td class="ws-auto" id="totalSales">451,241</td>
-            <td class="ws-label" style="width:120px;">法定預算</td>
-            <td class="ws-auto ws-key" id="legalBudget">10,829.78</td>
-            <td class="ws-label" style="width:120px;">本週來人</td>
+            <td class="ws-label" style="width:120px;">總銷金額<span class="ws-src">銷控表</span></td>
+            <td class="ws-auto" id="totalSales" title="自動帶入：銷控表銷售紀錄各戶底價加總；若數字有誤請回銷控表更正源頭資料">451,241</td>
+            <td class="ws-label" style="width:120px;">法定預算<span class="ws-src">建案管理</span></td>
+            <td class="ws-auto ws-key" id="legalBudget" title="自動計算：總銷金額 × 法定預算%（於建案管理 ▸ 建案編輯設定）">10,829.78</td>
+            <td class="ws-label" style="width:120px;">本週來人<span class="ws-src">賞屋管理</span></td>
             <td class="ws-auto" id="visitors" title="來自賞屋管理的客戶人數，不可手動修改">0</td>
           </tr>
         </table>
-        <p class="text-xs text-gray-400 mt-2">總銷金額＝銷控表底價加總；法定預算＝總銷金額 × 法定預算%（皇普 MOMA：2.4%，於建案編輯設定）；本週來人來自賞屋管理的客戶人數。</p>
+        <p class="text-xs text-gray-400 mt-2">
+          <b>總銷金額</b>由系統自銷控表自動抓取「銷售紀錄底價加總」，現場不能於本表手改；數字若有誤請回銷控表修正源頭，全案累計數據才會正確。<br>
+          <b>法定預算</b>＝總銷金額 × 法定預算%（皇普 MOMA 設定為 2.4%，於<a href="building-edit.html" class="text-blue-600 hover:underline">建案管理 ▸ 建案編輯</a>設定，可依建案調整）。<br>
+          <b>本週來人</b>來自賞屋管理的客戶人數。
+        </p>
       </div>
 
       <!-- 區塊二：戶數／車位 -->
@@ -129,11 +134,14 @@
             <td class="ws-auto" id="cumSalesAmt" style="width:140px;">0</td>
             <td class="ws-label" style="width:120px;">未售銷售金額</td>
             <td class="ws-auto" id="unsoldAmt" style="width:140px;">451,241</td>
-            <td class="ws-label" style="width:90px;">超價</td>
-            <td class="ws-auto" id="overprice">0</td>
+            <td class="ws-label" style="width:90px;">超價<span class="ws-src">手動</span></td>
+            <td><input type="number" id="overprice" class="ws-input ws-key" placeholder="0" title="手動輸入超價金額；輸入後請於下方備註區填寫異動說明"></td>
           </tr>
         </table>
-        <p class="text-xs text-gray-400 mt-2">未售銷售金額＝總銷 − 累計銷售金額；超價＝合約總價 − 總銷價。</p>
+        <p class="text-xs text-gray-400 mt-2">
+          未售銷售金額＝總銷 − 累計銷售金額。<br>
+          <b>超價</b>（實際售價高於底價的差額）為<b>手動輸入</b>欄位：實務上業主可能吸收超價、或將超價直接轉為底價（歸零），系統不採「合約總價−底價」自動計算，保留彈性讓現場依實況填寫。<span class="text-orange-600">填寫超價時，請於下方「本週異動說明」備註原因。</span>
+        </p>
       </div>
 
       <!-- 區塊四：佣金 / 執行費用 / 盈虧 -->
@@ -157,8 +165,8 @@
         </table>
         <table class="ws-table mt-3" style="max-width:760px;">
           <tr>
-            <td class="ws-label" style="width:160px;">已請佣金</td>
-            <td><input type="number" id="claimedComm" class="ws-input" placeholder="0"></td>
+            <td class="ws-label" style="width:160px;">已請佣金<span class="ws-src">佣金收入計算</span></td>
+            <td class="ws-auto" id="claimedComm" style="width:140px;" title="以「佣金收入計算」最終認可（會計核准）數字為準，不可手動修改">0</td>
             <td class="ws-label" style="width:120px;">未請佣金</td>
             <td class="ws-auto" id="unclaimedComm" style="width:140px;">0</td>
             <td class="ws-label" style="width:140px;">113 年度累計銷售</td>
@@ -166,8 +174,8 @@
           </tr>
         </table>
         <p class="text-xs text-gray-400 mt-2">
-          本週可請佣金＝當週成交各戶（可請佣金% × 底價）加總（佣金率每戶可能不同，來自銷控表）；
-          執行費用整包取自媒體執行總表；盈虧＝可請佣金 − 執行費用；未請佣金＝累計可請佣金 − 已請佣金。
+          本週可請佣金＝當週成交各戶（可請佣金% × 底價）加總（佣金率每戶可能不同，來自銷控表）；執行費用整包取自媒體執行總表；盈虧＝可請佣金 − 執行費用。<br>
+          <b>已請佣金</b>以<a href="commission-list.html" class="text-blue-600 hover:underline">「佣金收入計算」</a>模組最終認可（會計核准）的金額為準。現場提報的「已請佣金」常與會計實際核准的數字有落差，本表統一以會計核准數字為依據，作為管理層查看用。未請佣金＝累計可請佣金 − 已請佣金（自動）。
         </p>
       </div>
 
@@ -203,8 +211,9 @@
 
       <!-- 區塊六：備註與規則 -->
       <div class="bg-white rounded shadow-sm p-5 mb-4">
-        <div class="ws-sec"><i data-lucide="info" class="w-4 h-4 text-gray-400"></i> 備註與計算規則</div>
-        <textarea rows="2" class="w-full border rounded px-3 py-2 bg-gray-50 text-sm mb-3" placeholder="本週異動說明（戶數、車位、總銷、費用等異動須於此說明，以便查對）"></textarea>
+        <div class="ws-sec"><i data-lucide="info" class="w-4 h-4 text-gray-400"></i> 本週異動說明 與 計算規則</div>
+        <label class="block text-xs text-gray-500 mb-1">本週異動說明（戶數、車位、總銷、<b class="text-orange-600">超價</b>、費用等異動須於此填寫原因，以便查對）</label>
+        <textarea id="adjustNote" rows="3" class="w-full border rounded px-3 py-2 bg-white text-sm mb-3" placeholder="例：本週超價 350 萬，業主吸收 200 萬，實認列 150 萬；A3 戶退戶連動回沖佣金 24 萬…"></textarea>
         <div class="ws-note">
           ※ 公司管銷前 6 個月提列至累計執行費用，後續按週每週提列至「本週執行費用」。<span class="text-orange-500">（提列規則待客戶確認）</span><br>
           ※ 每週銷售金額係依實際可請領佣金之金額計算。<br>
@@ -252,10 +261,12 @@
 
     // ============================================================
     // 資料串接（原型）：公式即時計算為真；資料源用 demo，讀到 localStorage 即覆蓋
-    //   ─ 總銷／成交／佣金率：銷控表（key: salesctl_{建案}）
+    //   ─ 總銷／成交／佣金率：銷控表（key: salesctl_{建案}）— 自動，現場不可改
     //   ─ 執行費用：媒體執行總表（key: media_cost_{建案}_{西元年}_{月}，取對應週欄）
     //   ─ 本週來人：賞屋管理（key: house_visit_{建案}_{年}_{週}）
     //   ─ 法定預算%：建案編輯（key: building_{建案}.legalBudgetPct）
+    //   ─ 已請佣金：佣金收入計算最終核可值（key: commission_approved_{建案}_{年}_{週}）— 自動，現場不可改
+    //   ─ 超價：手動輸入（key: weeklySalesAdj_{建案}_{年}_{週}.overprice）
     // ============================================================
     const DATA = {
       planUnits: 299, planParks: 302,
@@ -271,11 +282,11 @@
       year:  { comm: 6000,  salesAmt: 120000 },                // 113 年度累計
       cum:   { comm: 8400,  salesAmt: 168000, dealUnits: 52, dealParks: 48 }, // 全案累計
       exec:  { week: 180, month: 900, year: 2600, cum: 3500 }, // 執行費用（整包取自媒體執行總表）
-      claimed: 5000,                                           // 已請佣金（人工，可改）
+      claimedApproved: 5000,                                   // 已請佣金（來自佣金收入計算最終認可，唯讀）
       related:  { units: 2, parks: 1, disc: 120 },             // 關係戶
       discount: { units: 1, parks: 0, amt: 60 },               // 折佣戶
       modelHouse: { units: 1, amt: 800 },                      // 未售實品屋
-      overprice: 350                                           // 超價＝合約總價−總銷價
+      overprice: 0                                             // 超價（手動輸入，預設 0）
     };
 
     const fmt = n => (n === null || n === undefined || n === '—')
@@ -309,7 +320,9 @@
       set('weekSalesAmt', weekSales);
       set('cumSalesAmt', D.cum.salesAmt);
       set('unsoldAmt', D.totalSalesBase - D.cum.salesAmt);
-      set('overprice', D.overprice);
+      // 超價改為手動輸入（input），預設值帶入；無自動公式
+      const overEl = document.getElementById('overprice');
+      overEl.value = D.overprice || '';
 
       // 區塊四：佣金／執行費用／盈虧（盈虧＝可請佣金−執行費用）
       set('commW', weekComm);     set('costW', D.exec.week);  setProfit('profitW', weekComm - D.exec.week);
@@ -318,12 +331,9 @@
       set('commT', D.cum.comm);   set('costT', D.exec.cum);   setProfit('profitT', D.cum.comm - D.exec.cum);
       set('cumSalesYear', D.year.salesAmt);
 
-      // 已請／未請佣金（未請＝累計可請−已請；已請可手動改，即時重算）
-      const claimedEl = document.getElementById('claimedComm');
-      claimedEl.value = D.claimed;
-      const recalcUnclaimed = () => set('unclaimedComm', D.cum.comm - (Number(claimedEl.value) || 0));
-      claimedEl.addEventListener('input', recalcUnclaimed);
-      recalcUnclaimed();
+      // 已請佣金：唯讀，數字來自「佣金收入計算」最終認可值；未請＝累計可請−已請
+      set('claimedComm', D.claimedApproved);
+      set('unclaimedComm', D.cum.comm - D.claimedApproved);
 
       // 區塊五：關係戶／折佣戶／實品屋／簽約
       set('relatedH', D.related.units); set('relatedP', D.related.parks); set('relatedDisc', D.related.disc);
@@ -332,6 +342,18 @@
       set('signedHP', `${D.cum.dealUnits} / ${D.cum.dealParks}`);
     }
     renderData();
+
+    // 儲存時校驗：超價非 0 就強制要求備註說明
+    function onSave() {
+      const over = Number(document.getElementById('overprice').value) || 0;
+      const note = (document.getElementById('adjustNote').value || '').trim();
+      if (over !== 0 && note === '') {
+        alert('已輸入超價金額，請於「本週異動說明」填寫原因後再儲存。');
+        document.getElementById('adjustNote').focus();
+        return;
+      }
+      alert('已儲存（範例）');
+    }
   </script>
   <script>lucide.createIcons();</script>
   <script src="assets/js/sidebar.js"></script>

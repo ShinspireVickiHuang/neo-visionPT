@@ -33,6 +33,7 @@
     <main class="flex-1 p-6 overflow-x-hidden">
       <div class="mb-6">
         <h2 class="text-lg font-bold text-gray-700">佣金收入計算</h2>
+        <p class="text-xs text-gray-500 mt-1">本模組以「月」為單位彙整。可請佣金來自銷控表、已收回佣金與超價來自週銷況表（最新一週），會計依此與現場進行勾稽。</p>
       </div>
 
       <div class="bg-white rounded shadow-sm">
@@ -199,38 +200,32 @@
 
     // ============================================================
     // 送審互動：點送審 → 確認 → 送出中 → 成功 toast + 更新狀態
+    //   被退回的單據重送前須先填「異動說明」（不含週次／補正期別）
     // ============================================================
     function sendForReview(btn) {
       const __tr = btn.closest('tr');
       const __isRejected = __tr && __tr.textContent.includes('被退回');
       const __doSend = () => showConfirm("確定要送出至簽核系統嗎？", "送出後將進入簽核流程，狀態會更新為「審核中」。", () => {
-        // 1) 按鈕變「送審中…」
         const originalHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span>送審中…';
         btn.classList.remove('bg-gray-700', 'hover:bg-gray-800');
         btn.classList.add('bg-gray-500', 'cursor-not-allowed');
 
-        // 2) 模擬 API 送出
         setTimeout(() => {
-          // 3) 成功 toast
           showToast('已送至簽核系統，等待簽核中');
-
-          // 4) 更新該列狀態 badge → 審核中
           const tr = btn.closest('tr');
           const statusCell = tr.querySelector('.status-cell');
           if (statusCell) {
             statusCell.innerHTML = '<span class="inline-block bg-blue-500 text-white text-xs px-3 py-1 rounded-full">審核中</span>';
           }
-
-          // 5) 送審按鈕變 disabled 樣式
           btn.innerHTML = '送審';
           btn.className = 'bg-gray-300 text-gray-500 px-3 py-1 rounded text-xs cursor-not-allowed';
           btn.disabled = true;
         }, 1500);
       });
 
-      // 被退回 → 重送前強制填「異動說明」（向會計交代調整的科目與原因）
+      // 被退回 → 重送前強制填「異動說明」（佣金收入計算為月維度，不再要求補正週次）
       if (__isRejected) {
         showAdjustmentModal(__doSend);
       } else {
@@ -274,7 +269,6 @@
     }
 
     function showAddCommissionModal() {
-      // 移除舊彈窗
       const old = document.getElementById('__addCommissionModal__');
       if (old) old.remove();
 
@@ -286,16 +280,12 @@
 
       modal.innerHTML = `
         <div style="background:#fff;border-radius:8px;width:100%;max-width:680px;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
-          <!-- 標題列 -->
           <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
             <span style="font-weight:bold;font-size:16px;color:#374151;">新增佣金表</span>
             <button id="__closeBtn__" style="background:transparent;border:0;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;padding:4px;">✕</button>
           </div>
 
-          <!-- 表單內容 -->
           <div style="padding:24px;display:flex;flex-direction:column;gap:18px;font-size:14px;">
-
-            <!-- 建案 -->
             <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;">
               <label>建案 <span style="color:#ef4444;">*</span></label>
               <select style="${inputStyle}">
@@ -305,8 +295,6 @@
                 <option>新希望</option>
               </select>
             </div>
-
-            <!-- 月份 -->
             <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;">
               <label>月份 <span style="color:#ef4444;">*</span></label>
               <select id="__monthSelect__" style="${inputStyle}">
@@ -325,8 +313,6 @@
                 <option>115年12月</option>
               </select>
             </div>
-
-            <!-- 銷售計算期間（依月份自動帶出） -->
             <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:center;">
               <label>銷售計算期間</label>
               <div style="display:flex;align-items:center;gap:8px;">
@@ -335,15 +321,12 @@
                 <input id="__periodEnd__" type="text" placeholder="自動帶出" readonly style="${inputStyle};color:#374151;">
               </div>
             </div>
-
-            <!-- 備註 -->
             <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:start;">
               <label style="padding-top:8px;">備註</label>
               <textarea rows="4" placeholder="請輸入備註" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
             </div>
           </div>
 
-          <!-- 底部按鈕 -->
           <div style="padding:16px 24px 24px;display:flex;justify-content:center;gap:12px;">
             <button id="__confirmBtn__" style="background:#a09080;color:#fff;border:0;padding:10px 36px;border-radius:4px;cursor:pointer;font-size:14px;">確定</button>
             <button id="__cancelBtn__" style="background:#ef4444;color:#fff;border:0;padding:10px 36px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
@@ -353,7 +336,6 @@
 
       document.body.appendChild(modal);
 
-      // 關閉行為
       const close = () => modal.remove();
       modal.querySelector('#__closeBtn__').onclick = close;
       modal.querySelector('#__cancelBtn__').onclick = close;
@@ -363,7 +345,6 @@
       };
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
 
-      // 月份選擇 → 自動帶出銷售計算期間（民國年 + 月，格式 M/D）
       const monthSel = modal.querySelector('#__monthSelect__');
       const startInput = modal.querySelector('#__periodStart__');
       const endInput = modal.querySelector('#__periodEnd__');
@@ -372,15 +353,19 @@
         if (!m) { startInput.value = ''; endInput.value = ''; return; }
         const rocYear = parseInt(m[1], 10);
         const month = parseInt(m[2], 10);
-        const adYear = rocYear + 1911; // 民國轉西元
-        const lastDay = new Date(adYear, month, 0).getDate();  // 該月最後一天
+        const adYear = rocYear + 1911;
+        const lastDay = new Date(adYear, month, 0).getDate();
         startInput.value = `${month}/1`;
         endInput.value = `${month}/${lastDay}`;
       };
     }
 
     // ============================================================
-    // 編輯佣金表 彈窗
+    // 編輯佣金表 彈窗（月匯總視圖，不再有週次/上一週/異動補入）
+    //   ─ 可請佣金（%/金額）：唯讀，來自銷控表月匯總
+    //   ─ 已收回佣金：唯讀，來自週銷況表「最新一週」的「已請佣金」欄位
+    //   ─ 超價部份金額：唯讀，來自週銷況表的「超價」欄位（最新一週）
+    //   ─ 未收回佣金明細：現場填寫一年內預計下款時程
     // ============================================================
     function showEditCommissionModal() {
       const old = document.getElementById('__editCommissionModal__');
@@ -390,46 +375,48 @@
       modal.id = '__editCommissionModal__';
       modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
 
-      // 樣式變數
       const cellBorder = "border:1px solid #d1d5db;";
       const td = `style="${cellBorder}padding:8px 10px;font-size:13px;"`;
       const tdYellow = `style="${cellBorder}padding:8px 10px;font-size:13px;background:#fffbe6;"`;
+      const tdSum = `style="${cellBorder}padding:10px;font-size:13px;background:#fef2f2;color:#dc2626;font-weight:bold;text-align:center;"`;
       const inputMini = "border:1px solid #d1d5db;padding:3px 6px;width:80px;font-size:13px;border-radius:3px;background:#fff;";
       const inputDate = "border:1px solid #d1d5db;padding:3px 6px;width:50px;font-size:13px;border-radius:3px;background:#fff;text-align:center;";
       const inputAmt  = "border:1px solid #d1d5db;padding:3px 6px;width:60px;font-size:13px;border-radius:3px;background:#fff;text-align:right;";
       const roMini = inputMini + "background:#e5e7eb;color:#6b7280;cursor:not-allowed;";
 
       // ============================================================
-      // 週次資料層（demo；實際應由「銷控表成交資料 × 年度週次設定」帶入）
-      //   每週成交總銷（萬）：six=[戶,車]、four=[戶,車]
-      //   CUR_WEEK/PREV_WEEK：當週與上一週（實際應依今天日期落在哪一週判定）
-      //   編輯時只呈現「當週」與「上一週」；異動針對上一週的修正，結轉至當週認列
+      // 月匯總資料（demo；實際應由銷控表 × 週銷況表帶入）
+      //   six=[戶,車] 6% 月成交底價加總（萬）
+      //   four=[戶,車] 4% 月成交底價加總（萬）
+      //   recv6/recv4：「已收回佣金」＝週銷況表「最新一週」的「已請佣金」（戶/車）
+      //   overprice：超價金額（來自週銷況表最新一週「超價」欄）
       // ============================================================
       const monthLabel = '115年5月';
-      const monthRange = '5/04 – 5/31';
-      const weekRanges = ['5/04 – 5/10', '5/11 – 5/17', '5/18 – 5/24', '5/25 – 5/31'];
-      const CUR_WEEK = 2;            // 當週（demo）
-      const PREV_WEEK = CUR_WEEK - 1; // 上一週
-      const weekData = [
-        { six:[500, 50],  four:[200, 30], recv6:[30, 0], recv4:[0, 0] },
-        { six:[800, 100], four:[300, 50], recv6:[40, 0], recv4:[10, 0] },
-        { six:[600, 80],  four:[250, 40], recv6:[35, 0], recv4:[8, 0] },
-        { six:[300, 20],  four:[350, 10], recv6:[15, 0], recv4:[12, 0] },
-      ];
-      // 可互動異動（針對上一週的修正：輸入原值/新值，系統自動算差額並結轉至當週）
-      const adjList = [
-        { target:'6% 戶（A棟12F）', oldVal:0, newVal:1,   reason:'第1週 A棟12F 佣金漏記，核對後補列' },
-        { target:'4% 戶（B棟8F）',  oldVal:0, newVal:0.5, reason:'第1週 B棟8F 折讓未入帳，補列' },
-      ];
-
-      const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
-      const calcWeek = w => {
-        const six  = (w.six[0]  + w.six[1])  * 0.06;
-        const four = (w.four[0] + w.four[1]) * 0.04;
-        return { six, four, sub: six + four };
+      const monthRange = '5/1 – 5/31';
+      const buildingName = '畫世代';
+      const latestWeekLabel = '第4週（5/25 – 5/31）';
+      const monthly = {
+        six:  [2400, 280],   // 6% 戶/車（月匯總，萬）
+        four: [1100, 180],   // 4% 戶/車（月匯總，萬）
+        recv6:[140, 0],      // 6% 已收回戶/車（來自週銷況表最新一週「已請佣金」）
+        recv4:[44, 0],       // 4% 已收回戶/車
+        overprice: 150       // 超價金額（萬）：來自週銷況表
       };
 
-      // 「未收回佣金明細」每行
+      const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+      const calcMonth = m => {
+        const six  = (m.six[0]  + m.six[1])  * 0.06;
+        const four = (m.four[0] + m.four[1]) * 0.04;
+        return { six, four, sub: six + four };
+      };
+      const c = calcMonth(monthly);
+      const totalSales = monthly.six[0] + monthly.six[1] + monthly.four[0] + monthly.four[1];
+      const totalRecv  = monthly.recv6[0] + monthly.recv6[1] + monthly.recv4[0] + monthly.recv4[1];
+      const totalUnrecv = c.sub - totalRecv;
+      const un6 = c.six  - (monthly.recv6[0] + monthly.recv6[1]);
+      const un4 = c.four - (monthly.recv4[0] + monthly.recv4[1]);
+
+      // 「未收回佣金明細」每行（現場可填）
       const rowHtml = (amt = 0) => `
         <tr>
           <td style="${cellBorder}padding:6px;font-size:13px;">
@@ -440,130 +427,77 @@
           </td>
         </tr>`;
 
-      // ===== 6%/4% 明細：總銷/可請佣金（唯讀）＋已收回佣金（人工填）＋未收回佣金（自動＝可請−已收回）=====
-      function detailRows(idx, editable) {
-        const w = weekData[idx - 1];
-        const c = calcWeek(w);
-        const r6 = w.recv6 || [0, 0], r4 = w.recv4 || [0, 0];
-        const un6 = c.six - (r6[0] + r6[1]);
-        const un4 = c.four - (r4[0] + r4[1]);
-        const recvCell = (val, cls) => editable
-          ? `<input type="number" class="${cls}" value="${val}" style="${inputMini}"> 萬`
-          : `<input type="number" value="${val}" readonly style="${roMini}"> 萬`;
+      // ===== 月匯總佣金表（6%/4% 各分戶/車） =====
+      function monthCommissionTable() {
         return `
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr style="background:#f9fafb;">
-              <th ${td}>佣金部份</th><th ${td} colspan="2">總銷（可請佣）</th>
-              <th ${tdYellow}>可請佣金(%)</th><th ${tdYellow}>可請佣金金額</th>
-              <th ${td} colspan="2">已收回佣金</th><th ${td}>未收回佣金</th>
+              <th ${td}>佣金部份</th><th ${td} colspan="2">總銷（可請佣）<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">來源：銷控表</span></th>
+              <th ${tdYellow}>可請佣金(%)</th><th ${tdYellow}>可請佣金金額<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">自動：銷控表月匯總</span></th>
+              <th ${td} colspan="2">已收回佣金<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">來源：週銷況表最新一週「已請佣金」</span></th>
+              <th ${td}>未收回佣金<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">自動：可請 − 已收回</span></th>
             </tr></thead>
             <tbody>
               <tr>
                 <td ${td} rowspan="2" style="${cellBorder}padding:8px;text-align:center;font-weight:bold;">6%</td>
                 <td ${td} style="width:30px;text-align:center;">戶</td>
-                <td ${td}><input type="number" value="${w.six[0]}" readonly style="${roMini}"> 萬</td>
+                <td ${td}><input type="number" value="${monthly.six[0]}" readonly style="${roMini}"> 萬</td>
                 <td ${tdYellow} rowspan="2" style="${cellBorder}text-align:center;font-weight:bold;">6 %</td>
                 <td ${tdYellow} rowspan="2" style="${cellBorder}text-align:center;font-weight:bold;">${fmt(c.six)} 萬</td>
                 <td ${td} style="width:30px;text-align:center;">戶</td>
-                <td ${td}>${recvCell(r6[0], 'recv-6h')}</td>
+                <td ${td}><input type="number" value="${monthly.recv6[0]}" readonly style="${roMini}"> 萬</td>
                 <td ${td} rowspan="2" class="un-6" style="${cellBorder}text-align:center;font-weight:bold;">${fmt(un6)} 萬</td>
               </tr>
               <tr>
                 <td ${td} style="text-align:center;">車</td>
-                <td ${td}><input type="number" value="${w.six[1]}" readonly style="${roMini}"> 萬</td>
+                <td ${td}><input type="number" value="${monthly.six[1]}" readonly style="${roMini}"> 萬</td>
                 <td ${td} style="text-align:center;">車</td>
-                <td ${td}>${recvCell(r6[1], 'recv-6c')}</td>
+                <td ${td}><input type="number" value="${monthly.recv6[1]}" readonly style="${roMini}"> 萬</td>
               </tr>
               <tr>
                 <td ${td} rowspan="2" style="${cellBorder}padding:8px;text-align:center;font-weight:bold;">4%</td>
                 <td ${td} style="text-align:center;">戶</td>
-                <td ${td}><input type="number" value="${w.four[0]}" readonly style="${roMini}"> 萬</td>
+                <td ${td}><input type="number" value="${monthly.four[0]}" readonly style="${roMini}"> 萬</td>
                 <td ${tdYellow} rowspan="2" style="${cellBorder}text-align:center;font-weight:bold;">4 %</td>
                 <td ${tdYellow} rowspan="2" style="${cellBorder}text-align:center;font-weight:bold;">${fmt(c.four)} 萬</td>
                 <td ${td} style="text-align:center;">戶</td>
-                <td ${td}>${recvCell(r4[0], 'recv-4h')}</td>
+                <td ${td}><input type="number" value="${monthly.recv4[0]}" readonly style="${roMini}"> 萬</td>
                 <td ${td} rowspan="2" class="un-4" style="${cellBorder}text-align:center;font-weight:bold;">${fmt(un4)} 萬</td>
               </tr>
               <tr>
                 <td ${td} style="text-align:center;">車</td>
-                <td ${td}><input type="number" value="${w.four[1]}" readonly style="${roMini}"> 萬</td>
+                <td ${td}><input type="number" value="${monthly.four[1]}" readonly style="${roMini}"> 萬</td>
                 <td ${td} style="text-align:center;">車</td>
-                <td ${td}>${recvCell(r4[1], 'recv-4c')}</td>
+                <td ${td}><input type="number" value="${monthly.recv4[1]}" readonly style="${roMini}"> 萬</td>
               </tr>
-              <tr style="background:#f1f5f9;font-weight:bold;">
-                <td ${td} colspan="4" style="${cellBorder}text-align:right;">本週小計</td>
-                <td ${td} style="${cellBorder}text-align:center;">${fmt(c.sub)} 萬</td>
-                <td ${td} colspan="3"></td>
+              <tr>
+                <td ${tdSum}>本月合計</td>
+                <td ${tdSum} colspan="2">${fmt(totalSales)} 萬</td>
+                <td ${tdSum}></td>
+                <td ${tdSum}>${fmt(c.sub)} 萬</td>
+                <td ${tdSum} colspan="2">${fmt(totalRecv)} 萬</td>
+                <td ${tdSum}>${fmt(totalUnrecv)} 萬</td>
               </tr>
             </tbody>
           </table>`;
       }
 
-      // ===== 上一週分頁（純對照）=====
-      function prevWeekPane() {
-        return `
-          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;">第${PREV_WEEK}週　${weekRanges[PREV_WEEK - 1]}（上一週・供對照）</div>
-          ${detailRows(PREV_WEEK, false)}
-          <p style="font-size:12px;color:#94a3b8;margin-top:8px;">※ 此週若有漏記／溢算，請到「當週」分頁登記異動，差額會自動結轉至第${CUR_WEEK}週認列。</p>`;
-      }
-
-      // ===== 當週分頁（異動補入為唯讀多筆示意）=====
-      function curWeekPane() {
-        const c = calcWeek(weekData[CUR_WEEK - 1]);
-        const fmtSign = d => (d >= 0 ? '＋' : '－') + fmt(Math.abs(d));
-        const totalAdj = adjList.reduce((s, a) => s + (a.newVal - a.oldVal), 0);
-        const adjRows = adjList.map(a => {
-          const d = a.newVal - a.oldVal;
-          return `<tr>
-            <td ${td}>${a.target}</td>
-            <td ${td} style="text-align:right;">${fmt(a.oldVal)} 萬</td>
-            <td ${td} style="text-align:right;">${fmt(a.newVal)} 萬</td>
-            <td ${td} style="text-align:right;font-weight:600;color:${d >= 0 ? '#16a34a' : '#dc2626'};">${fmtSign(d)} 萬</td>
-            <td ${td}>${a.reason}</td>
-          </tr>`;
-        }).join('');
-        return `
-          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;">第${CUR_WEEK}週　${weekRanges[CUR_WEEK - 1]}（當週）</div>
-          ${detailRows(CUR_WEEK, true)}
-          <div style="margin-top:14px;border:1px solid #bbf7d0;border-radius:6px;overflow:hidden;">
-            <div style="background:#f0fdf4;padding:8px 12px;font-size:13px;font-weight:700;color:#166534;">上週（第${PREV_WEEK}週）異動補入（${adjList.length} 筆・唯讀示意）</div>
-            <table style="width:100%;border-collapse:collapse;">
-              <thead><tr style="background:#f9fafb;">
-                <th ${td}>調整科目</th><th ${td}>原可請佣金額</th><th ${td}>調整後</th><th ${td}>差額</th><th ${td}>異動原因</th>
-              </tr></thead>
-              <tbody>
-                ${adjRows}
-                <tr style="background:#f0fdf4;font-weight:bold;color:#166534;">
-                  <td ${td} colspan="3" style="text-align:right;color:#166534;">異動補入合計</td>
-                  <td ${td} style="text-align:right;color:#166534;">${fmtSign(totalAdj)} 萬</td>
-                  <td ${td}></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <table style="width:100%;border-collapse:collapse;margin-top:12px;">
-            <tbody>
-              <tr style="background:#f1f5f9;font-weight:bold;"><td ${td} style="text-align:right;width:75%;">本週小計</td><td ${td} style="text-align:center;">${fmt(c.sub)} 萬</td></tr>
-              <tr style="background:#f0fdf4;font-weight:bold;color:#166534;"><td ${td} style="text-align:right;color:#166534;">＋ 上週（第${PREV_WEEK}週）異動補入</td><td ${td} style="text-align:center;color:#166534;">${fmtSign(totalAdj)} 萬</td></tr>
-              <tr style="background:#fef2f2;font-weight:bold;color:#dc2626;"><td ${td} style="text-align:right;color:#dc2626;">第${CUR_WEEK}週實際可請佣金</td><td ${td} style="text-align:center;color:#dc2626;">${fmt(c.sub + totalAdj)} 萬</td></tr>
-            </tbody>
-          </table>`;
-      }
-
-      // ===== 超價部份 + 未收回佣金明細（整月層級，沿用原表）=====
+      // ===== 超價 + 未收回佣金明細（月層級）=====
       function monthExtraTable() {
         return `
-          <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">以下為整月層級資訊（超價部份金額／未收回佣金明細之下款時程）。</p>
+          <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">以下為月層級資訊：超價金額來自週銷況表（最新一週），未收回佣金下款時程由現場估算填寫。</p>
           <table style="width:100%;border-collapse:collapse;">
             <tr>
               <td ${td} style="${cellBorder}padding:14px;width:80px;text-align:center;font-weight:bold;vertical-align:middle;">超價<br>部份<br>金額</td>
-              <td ${td} style="${cellBorder}padding:14px;width:240px;vertical-align:top;">
-                <div style="margin-bottom:10px;">
-                  <input type="number" value="500" readonly style="${roMini}"> 萬（公司 <input type="number" value="30" readonly style="${roMini}width:50px;"> %）
+              <td ${td} style="${cellBorder}padding:14px;width:300px;vertical-align:top;">
+                <div style="font-size:13px;color:#374151;">
+                  <input type="number" id="__overpriceAmt__" value="${monthly.overprice}" readonly style="${roMini}"> 萬
+                  （公司 <input type="number" id="__companyPct__" value="30" style="${inputMini};width:60px;background:#fff;"> ％）
                 </div>
-                <div style="font-size:12px;margin-bottom:6px;">超價全額（萬）</div>
-                <input type="number" value="150" readonly style="${inputMini};width:140px;background:#f3f4f6;">
-                <div style="font-size:11px;color:#6b7280;margin-top:8px;">※ 由系統自動計算，不可手動修改</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:10px;line-height:1.6;">
+                  ※ <b>超價金額</b>來自週銷況表「超價」欄位（${latestWeekLabel}），不可手動；如需更正請至週銷況表調整。<br>
+                  ※ <b>公司 ％</b>於本表手動填寫。
+                </div>
               </td>
               <td ${td} style="${cellBorder}padding:0;width:60px;text-align:center;font-weight:bold;vertical-align:middle;">未收回<br>佣金<br>明細</td>
               <td ${td} style="${cellBorder}padding:0;">
@@ -590,12 +524,6 @@
           </table>`;
       }
 
-      // ===== tab：上一週 / 當週 =====
-      const tabStyle = "padding:6px 16px;font-size:13px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#6b7280;cursor:pointer;white-space:nowrap;";
-      const tabsHtml = `
-        <button data-week="${PREV_WEEK}" class="__wtab" style="${tabStyle}">上一週（第${PREV_WEEK}週）</button>
-        <button data-week="${CUR_WEEK}" class="__wtab" style="${tabStyle}">當週（第${CUR_WEEK}週） <span style="color:#16a34a;">●</span></button>`;
-
       modal.innerHTML = `
         <div style="background:#fff;border-radius:8px;width:100%;max-width:1000px;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
           <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
@@ -604,14 +532,20 @@
           </div>
 
           <div style="padding:18px 24px;">
-            <p style="font-size:12px;color:#6b7280;margin:0 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;">※ 總銷、可請佣金(%) 由系統自動帶入（來源：銷控表），不可手動修改。本表以「週」為週期（週次來自年度週次設定），編輯時僅呈現<b>當週</b>與<b>上一週</b>；跨週異動針對上一週的修正，差額由系統自動計算並<b>結轉至當週</b>認列。</p>
+            <p style="font-size:12px;color:#6b7280;margin:0 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;line-height:1.7;">
+              ※ 本表以<b>月</b>為單位彙整，<b>不處理週次異動</b>。<br>
+              ※ 可請佣金（%／金額）由系統自動帶入，<b>來源：銷控表月匯總</b>，不可手動修改。<br>
+              ※ 已收回佣金由系統自動帶入，<b>來源：週銷況表「最新一週」的「已請佣金」欄位</b>，會計可依此與現場勾稽。<br>
+              ※ 超價部份金額由系統自動帶入，<b>來源：週銷況表的「超價」欄位</b>，不可手動修改。<br>
+              ※ 未收回佣金明細（一年下款時程）由現場估算填寫。
+            </p>
 
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;font-size:13px;color:#374151;margin-bottom:14px;">
-              建案 <b>畫世代</b>　│　${monthLabel}（${monthRange}，來源：年度週次設定）
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;font-size:13px;color:#374151;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>建案 <b>${buildingName}</b>　│　${monthLabel}（${monthRange}）</div>
+              <div style="font-size:12px;color:#6b7280;">已收回佣金／超價對應週銷況表：<b style="color:#374151;">${latestWeekLabel}</b></div>
             </div>
 
-            <div id="__weekTabs__" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">${tabsHtml}</div>
-            <div id="__weekPane__"></div>
+            <div>${monthCommissionTable()}</div>
             <div style="margin-top:18px;border-top:1px dashed #e5e7eb;padding-top:14px;">${monthExtraTable()}</div>
           </div>
 
@@ -624,67 +558,11 @@
 
       document.body.appendChild(modal);
 
-      // 關閉行為
       const close = () => modal.remove();
       modal.querySelector('#__editCloseBtn__').onclick = close;
       modal.querySelector('#__editCancelBtn__').onclick = close;
       modal.querySelector('#__editConfirmBtn__').onclick = () => { alert('已儲存佣金表（範例）'); close(); };
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
-
-      const tabsEl = modal.querySelector('#__weekTabs__');
-      const paneEl = modal.querySelector('#__weekPane__');
-
-      // 可互動異動：輸入原值/新值 → 自動算差額 → 結轉更新當週實際
-      function bindAdjust() {
-        const oldI = paneEl.querySelector('#__adjOld__');
-        const newI = paneEl.querySelector('#__adjNew__');
-        if (!oldI || !newI) return;
-        const diffEl = paneEl.querySelector('#__adjDiff__');
-        const diffCell = paneEl.querySelector('#__adjDiffCell__');
-        const showEl = paneEl.querySelector('#__adjShow__');
-        const realEl = paneEl.querySelector('#__weekReal__');
-        const sub = calcWeek(weekData[CUR_WEEK - 1]).sub;
-        const upd = () => {
-          const d = Number(newI.value || 0) - Number(oldI.value || 0);
-          const sign = d >= 0 ? '＋' : '－';
-          const txt = sign + fmt(Math.abs(d));
-          diffEl.textContent = txt;
-          showEl.textContent = txt;
-          if (diffCell) diffCell.style.color = d >= 0 ? '#16a34a' : '#dc2626';
-          realEl.textContent = fmt(sub + d);
-        };
-        oldI.addEventListener('input', upd);
-        newI.addEventListener('input', upd);
-        upd();
-      }
-
-      // 已收回佣金（人工填）→ 即時重算未收回 = 可請佣金金額 − 已收回（戶＋車）
-      function bindRecv() {
-        const q = s => paneEl.querySelector(s);
-        const c = calcWeek(weekData[CUR_WEEK - 1]);
-        const upd = () => {
-          const h6 = Number((q('.recv-6h') || {}).value || 0), c6 = Number((q('.recv-6c') || {}).value || 0);
-          const h4 = Number((q('.recv-4h') || {}).value || 0), c4 = Number((q('.recv-4c') || {}).value || 0);
-          const u6 = q('.un-6'), u4 = q('.un-4');
-          if (u6) u6.textContent = fmt(c.six - (h6 + c6)) + ' 萬';
-          if (u4) u4.textContent = fmt(c.four - (h4 + c4)) + ' 萬';
-        };
-        ['.recv-6h', '.recv-6c', '.recv-4h', '.recv-4c'].forEach(s => { const el = q(s); if (el) el.addEventListener('input', upd); });
-        upd();
-      }
-
-      function selectWeek(idx) {
-        tabsEl.querySelectorAll('.__wtab').forEach(b => {
-          const on = Number(b.dataset.week) === idx;
-          b.style.background  = on ? '#a09080' : '#fff';
-          b.style.color       = on ? '#fff' : '#6b7280';
-          b.style.borderColor = on ? '#a09080' : '#d1d5db';
-        });
-        if (idx === CUR_WEEK) { paneEl.innerHTML = curWeekPane(); bindAdjust(); bindRecv(); }
-        else { paneEl.innerHTML = prevWeekPane(); }
-      }
-      tabsEl.querySelectorAll('.__wtab').forEach(b => b.addEventListener('click', () => selectWeek(Number(b.dataset.week))));
-      selectWeek(CUR_WEEK);
 
       // 月層級：未收回佣金明細自動加總
       const total = modal.querySelector('#__totalAmt__');
@@ -739,17 +617,17 @@
           </div>
 
           <div style="padding:18px 24px;">
-            <p style="font-size:12px;color:#6b7280;margin:0 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;">※ 本頁僅供檢視，所有欄位均無法修改。</p>
+            <p style="font-size:12px;color:#6b7280;margin:0 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:10px;">※ 本頁僅供檢視，所有欄位均無法修改。可請佣金來自銷控表，已收回佣金與超價來自週銷況表（最新一週）。</p>
 
             <!-- 上半部佣金表 -->
             <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
               <thead>
                 <tr style="background:#f9fafb;">
                   <th ${td}>佣金部份</th>
-                  <th ${td} colspan="2">總銷（可請佣）</th>
+                  <th ${td} colspan="2">總銷（可請佣）<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">來源：銷控表</span></th>
                   <th ${tdYellow}>可請佣金<br>(%)</th>
                   <th ${tdYellow}>可請佣金金額</th>
-                  <th ${td} colspan="2">已收回佣金</th>
+                  <th ${td} colspan="2">已收回佣金<br><span style="font-size:11px;color:#94a3b8;font-weight:400;">來源：週銷況表</span></th>
                   <th ${td}>未收回佣金</th>
                 </tr>
               </thead>
@@ -787,7 +665,7 @@
                   <td ${td}><input type="text" value="0" readonly style="${inputRO}"> 萬</td>
                 </tr>
                 <tr>
-                  <td ${tdSum}>合計</td>
+                  <td ${tdSum}>本月合計</td>
                   <td ${tdSum} colspan="2">4,200 萬</td>
                   <td ${tdSum}></td>
                   <td ${tdSum}>224 萬</td>
@@ -801,13 +679,12 @@
             <table style="width:100%;border-collapse:collapse;">
               <tr>
                 <td ${td} style="${cellBorder}padding:14px;width:80px;text-align:center;font-weight:bold;vertical-align:middle;">超價<br>部份<br>金額</td>
-                <td ${td} style="${cellBorder}padding:14px;width:240px;vertical-align:top;">
-                  <div style="margin-bottom:10px;">
-                    <input type="text" value="500" readonly style="${inputRO}"> 萬（公司 <input type="text" value="30" readonly style="${inputRO};width:50px;"> %）
+                <td ${td} style="${cellBorder}padding:14px;width:300px;vertical-align:top;">
+                  <div style="font-size:13px;color:#374151;">
+                    <input type="text" value="500" readonly style="${inputRO}"> 萬
+                    （公司 <input type="text" value="30" readonly style="${inputRO};width:50px;"> ％）
                   </div>
-                  <div style="font-size:12px;margin-bottom:6px;">超價全額（萬）</div>
-                  <input type="text" value="150" readonly style="${inputRO};width:140px;">
-                  <div style="font-size:11px;color:#6b7280;margin-top:8px;">※ 由系統自動計算</div>
+                  <div style="font-size:11px;color:#6b7280;margin-top:10px;line-height:1.6;">※ 超價金額來自週銷況表；公司 ％ 由本表手動填寫。</div>
                 </td>
                 <td ${td} style="${cellBorder}padding:0;width:60px;text-align:center;font-weight:bold;vertical-align:middle;">未收回<br>佣金<br>明細</td>
                 <td ${td} style="${cellBorder}padding:0;">
@@ -852,7 +729,6 @@
             </table>
           </div>
 
-          <!-- 底部：只有關閉 -->
           <div style="padding:16px 24px 24px;display:flex;justify-content:center;gap:12px;border-top:1px solid #e5e7eb;background:#fafafa;">
             <button id="__viewCloseBtn2__" style="background:#6b7280;color:#fff;border:0;padding:10px 36px;border-radius:4px;cursor:pointer;font-size:14px;">關閉</button>
           </div>
@@ -868,7 +744,8 @@
     }
 
     // ============================================================
-    // 異動說明 modal：被退回後重送，強制填「調整科目＋補正期別＋原因」
+    // 異動說明 modal：被退回後重送，強制填「調整科目＋異動原因」
+    //   佣金收入計算為月維度，不再要求補正週次
     // ============================================================
     function showAdjustmentModal(onConfirm) {
       const old = document.getElementById('__adjustModal__');
@@ -883,31 +760,20 @@
             <span style="font-weight:bold;font-size:16px;color:#374151;">填寫異動說明後重送</span>
           </div>
           <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;font-size:14px;">
-            <div style="background:#fef2f2;border-left:3px solid #ef4444;padding:10px 12px;border-radius:4px;font-size:12px;color:#b91c1c;line-height:1.6;">此佣金表曾被退回，重新送審前須向會計說明本次調整了哪些科目與原因，系統將留存異動軌跡。</div>
+            <div style="background:#fef2f2;border-left:3px solid #ef4444;padding:10px 12px;border-radius:4px;font-size:12px;color:#b91c1c;line-height:1.6;">此佣金表曾被退回，重新送審前須向會計說明本次調整了哪些科目與原因，系統將留存異動軌跡。<br>本模組以月為單位，不需指定週次。</div>
             <div>
               <label style="display:block;margin-bottom:6px;color:#374151;">調整科目 <span style="color:#ef4444;">*</span></label>
               <select id="__adjTarget__" style="${inputStyle}">
                 <option value="">請選擇</option>
                 <option>可請佣金 %（趴數）</option>
-                <option>已收回佣金</option>
+                <option>已收回佣金（需回週銷況表更正）</option>
                 <option>未收回佣金明細 / 下款時程</option>
-                <option>超價部份金額</option>
-              </select>
-            </div>
-            <div>
-              <label style="display:block;margin-bottom:6px;color:#374151;">補正期別 <span style="color:#ef4444;">*</span></label>
-              <select id="__adjPeriod__" style="${inputStyle}">
-                <option value="">請選擇被修正的週次</option>
-                <option>開案週（5/01–5/03）</option>
-                <option>第1週（5/04–5/10）</option>
-                <option>第2週（5/11–5/17）</option>
-                <option>第3週（5/18–5/24）</option>
-                <option>第4週（5/25–5/31）</option>
+                <option>超價部份金額（需回週銷況表更正）</option>
               </select>
             </div>
             <div>
               <label style="display:block;margin-bottom:6px;color:#374151;">異動原因 <span style="color:#ef4444;">*</span></label>
-              <textarea id="__adjReason__" rows="3" placeholder="例如：客戶議價，主管特批，佣金由 6% 調整為 6.5%" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
+              <textarea id="__adjReason__" rows="4" placeholder="例如：客戶議價，主管特批，佣金由 6% 調整為 6.5%；或：已收回佣金已於週銷況表更正，本表重新帶入後重送" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
             </div>
           </div>
           <div style="padding:14px 24px;background:#fafafa;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:8px;">
@@ -921,10 +787,9 @@
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
       modal.querySelector('#__adjOk__').onclick = () => {
         const target = modal.querySelector('#__adjTarget__').value;
-        const period = modal.querySelector('#__adjPeriod__').value;
         const reason = modal.querySelector('#__adjReason__').value.trim();
-        if (!target || !period || !reason) {
-          alert('請完整填寫「調整科目、補正期別、異動原因」後才能送審。');
+        if (!target || !reason) {
+          alert('請完整填寫「調整科目、異動原因」後才能送審。');
           return;
         }
         close();
