@@ -39,14 +39,28 @@
         <p class="text-xs text-gray-400 mt-1">建立多組期別範本（付款辦法），供各建案選擇套用；套用後即可在「繳款紀錄管理」編輯各戶的繳款紀錄</p>
       </div>
 
-      <!-- 工具列 -->
+      <!-- 搜尋條件 -->
       <div class="bg-white rounded shadow-sm p-6 mb-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <label class="text-sm font-medium">範本名稱</label>
-            <input id="fName" type="text" placeholder="搜尋範本名稱" class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="text-base font-bold text-gray-700">搜尋條件</h3>
+            <p class="text-xs text-gray-400 mt-1">可依範本名稱篩選；或輸入建案名稱，反查該建案套用哪一組範本</p>
           </div>
-          <button id="btnAddTpl" class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm"><i data-lucide="plus" class="w-4 h-4"></i> 新增期別範本</button>
+          <button id="btnAddTpl" class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm flex-shrink-0"><i data-lucide="plus" class="w-4 h-4"></i> 新增期別範本</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">範本名稱</label>
+            <input id="fName" type="text" placeholder="請輸入範本名稱" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">建案名稱</label>
+            <input id="fProject" type="text" placeholder="輸入建案名稱，查該建案套用的範本" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button id="btnReset" class="flex items-center gap-1 border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 rounded text-sm"><i data-lucide="eraser" class="w-4 h-4"></i> 清除</button>
+          <button id="btnSearch" class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm"><i data-lucide="search" class="w-4 h-4"></i> 搜尋</button>
         </div>
       </div>
 
@@ -61,11 +75,27 @@
     // ============================================================
     // 期別範本範例資料（之後改為從 API 帶入）
     // dueRule：應繳時點規則（簽約後 N 天／指定工程節點）
+    // 建案數會隨經營年數累積（數十到數百案），因此：
+    //   - 套用關係記在建案上（appliedTpl），一案一範本
+    //   - 範本卡只顯示套用「數量」，明細與套用一律靠搜尋
     // ============================================================
-    const PROJECTS = ['新理想', '畫世代', 'TheTop'];
+    const PROJECTS = [
+      { name:'新理想',     appliedTpl:1 },
+      { name:'畫世代',     appliedTpl:2 },
+      { name:'TheTop',     appliedTpl:2 },
+      { name:'新希望',     appliedTpl:1 },
+      { name:'河岸首席',   appliedTpl:1 },
+      { name:'雲端花園',   appliedTpl:2 },
+      { name:'市心大觀',   appliedTpl:1 },
+      { name:'綠光敦南',   appliedTpl:null },
+      { name:'湖畔莊園',   appliedTpl:null },
+      { name:'學府特區',   appliedTpl:2 },
+      { name:'站前之星',   appliedTpl:1 },
+      { name:'風華再現',   appliedTpl:null },
+    ];
     const TEMPLATES = [
       {
-        id: 1, name: '標準 6 期（訂簽開＋工程期款）', appliedTo: ['新理想'],
+        id: 1, name: '標準 6 期（訂簽開＋工程期款）',
         stages: [
           { stage:'訂金',      pct:3,  dueRule:'下訂當日' },
           { stage:'簽約款',    pct:7,  dueRule:'簽約後 7 天' },
@@ -76,7 +106,7 @@
         ]
       },
       {
-        id: 2, name: '精簡 3 期（訂簽＋交屋）', appliedTo: ['畫世代', 'TheTop'],
+        id: 2, name: '精簡 3 期（訂簽＋交屋）',
         stages: [
           { stage:'訂金',   pct:5,  dueRule:'下訂當日' },
           { stage:'簽約款', pct:10, dueRule:'簽約後 7 天' },
@@ -84,7 +114,7 @@
         ]
       },
       {
-        id: 3, name: '工程期款 12 期（按月）', appliedTo: [],
+        id: 3, name: '工程期款 12 期（按月）',
         stages: [
           { stage:'訂金',        pct:3,  dueRule:'下訂當日' },
           { stage:'簽約款',      pct:7,  dueRule:'簽約後 7 天' },
@@ -95,19 +125,35 @@
       },
     ];
 
+    // 某範本已套用的建案清單
+    const appliedProjects = tplId => PROJECTS.filter(p => p.appliedTpl === tplId);
+
     function render() {
       const kw = document.getElementById('fName').value.trim();
+      const pj = document.getElementById('fProject').value.trim();
       const list = document.getElementById('tplList');
       list.innerHTML = '';
-      const rows = TEMPLATES.filter(t => !kw || t.name.includes(kw));
 
+      let rows = TEMPLATES.filter(t => !kw || t.name.includes(kw));
+      // 建案反查：只顯示該建案套用的範本
+      let pjHint = '';
+      if (pj) {
+        const matched = PROJECTS.filter(p => p.name.includes(pj));
+        const tplIds = new Set(matched.map(p => p.appliedTpl).filter(Boolean));
+        rows = rows.filter(t => tplIds.has(t.id));
+        const noTplNames = matched.filter(p => !p.appliedTpl).map(p => p.name);
+        pjHint = `<div class="bg-white rounded shadow-sm px-6 py-3 text-sm text-gray-600">建案「${pj}」符合 ${matched.length} 案${noTplNames.length ? `；其中 <span class="text-red-500">${noTplNames.join('、')}</span> 尚未套用任何範本` : ''}</div>`;
+      }
+
+      if (pjHint) list.insertAdjacentHTML('beforeend', pjHint);
       if (!rows.length) {
-        list.innerHTML = '<div class="bg-white rounded shadow-sm p-10 text-center text-gray-400 text-sm">查無符合的期別範本</div>';
+        list.insertAdjacentHTML('beforeend', '<div class="bg-white rounded shadow-sm p-10 text-center text-gray-400 text-sm">查無符合的期別範本</div>');
         return;
       }
 
       rows.forEach(t => {
         const totalPct = t.stages.reduce((s, x) => s + x.pct, 0);
+        const appliedCount = appliedProjects(t.id).length;
         const stageRows = t.stages.map((s, i) => `
           <tr class="${i % 2 ? 'bg-gray-50' : ''}">
             <td class="p-2.5 text-sm whitespace-nowrap">${i + 1}</td>
@@ -115,10 +161,6 @@
             <td class="p-2.5 text-sm text-right whitespace-nowrap">${s.pct}%</td>
             <td class="p-2.5 text-sm text-gray-600">${s.dueRule}</td>
           </tr>`).join('');
-
-        const applied = t.appliedTo.length
-          ? t.appliedTo.map(p => `<span class="inline-block bg-teal-50 text-teal-700 border border-teal-200 text-xs px-2 py-0.5 rounded">${p}</span>`).join(' ')
-          : '<span class="text-xs text-gray-400">尚未套用</span>';
 
         const card = document.createElement('div');
         card.className = 'bg-white rounded shadow-sm p-6';
@@ -129,8 +171,9 @@
                 <h3 class="text-base font-bold text-gray-700">${t.name}</h3>
                 <span class="text-xs ${totalPct === 100 ? 'text-green-600' : 'text-red-500 font-bold'}">合計 ${totalPct}%${totalPct !== 100 ? '（未達 100%，請檢查）' : ''}</span>
               </div>
-              <div class="mt-2 flex items-center gap-2 flex-wrap">
-                <span class="text-xs text-gray-500">已套用建案：</span>${applied}
+              <div class="mt-2 text-xs text-gray-500">
+                已套用 <b class="text-gray-800">${appliedCount}</b> 個建案
+                ${appliedCount ? `<a href="#" class="text-blue-600 hover:underline ml-1" onclick="openAppliedModal(${t.id});return false;">查看清單</a>` : ''}
               </div>
             </div>
             <div class="flex gap-2 flex-shrink-0">
@@ -158,7 +201,60 @@
     }
 
     document.getElementById('fName').addEventListener('input', render);
+    document.getElementById('fProject').addEventListener('input', render);
+    document.getElementById('btnSearch').onclick = render;
+    document.getElementById('btnReset').onclick = () => {
+      document.getElementById('fName').value = '';
+      document.getElementById('fProject').value = '';
+      render();
+    };
     document.getElementById('btnAddTpl').onclick = () => openTplModal(null);
+
+    // ============================================================
+    // 查看已套用建案清單（可搜尋，建案多時不怕爆量）
+    // ============================================================
+    function openAppliedModal(id) {
+      const old = document.getElementById('__appliedModal__');
+      if (old) old.remove();
+      const t = TEMPLATES.find(x => x.id === id);
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+
+      const modal = document.createElement('div');
+      modal.id = '__appliedModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:480px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <span style="font-weight:bold;font-size:16px;color:#374151;">已套用建案</span>
+              <div style="font-size:13px;color:#6b7280;margin-top:4px;">範本：${t.name}</div>
+            </div>
+            <button id="__apCloseBtn__" style="background:#fff;border:1px solid #d1d5db;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;color:#374151;">✕</button>
+          </div>
+          <div style="padding:16px 24px;">
+            <input id="__apKw__" type="text" placeholder="搜尋建案名稱" style="${inputStyle};margin-bottom:10px;">
+            <div id="__apList__" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__apDoneBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">關閉</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      const renderList = () => {
+        const kw = modal.querySelector('#__apKw__').value.trim();
+        const items = appliedProjects(id).filter(p => !kw || p.name.includes(kw));
+        modal.querySelector('#__apList__').innerHTML = items.length
+          ? items.map(p => `<div style="font-size:14px;padding:8px 12px;border:1px solid #e5e7eb;border-radius:6px;">${p.name}</div>`).join('')
+          : '<div style="font-size:13px;color:#9ca3af;text-align:center;padding:14px;">查無符合的建案</div>';
+      };
+      renderList();
+      modal.querySelector('#__apKw__').addEventListener('input', renderList);
+      const close = () => modal.remove();
+      modal.querySelector('#__apCloseBtn__').onclick = close;
+      modal.querySelector('#__apDoneBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
 
     // ============================================================
     // 新增／編輯範本彈窗：範本名稱＋期別明細（可增刪列）
@@ -224,29 +320,32 @@
     }
 
     // ============================================================
-    // 套用到建案彈窗：勾選建案後套用
+    // 套用到建案彈窗：先搜尋建案再勾選（建案量大時不整頁列出）
+    // 一個建案同時只能套用一組範本，重套會提示將覆蓋
     // ============================================================
     function openApplyModal(id) {
       const old = document.getElementById('__applyModal__');
       if (old) old.remove();
       const t = TEMPLATES.find(x => x.id === id);
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+      const tplName = tid => (TEMPLATES.find(x => x.id === tid) || {}).name || '';
 
       const modal = document.createElement('div');
       modal.id = '__applyModal__';
       modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
       modal.innerHTML = `
-        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
-          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
-            <span style="font-weight:bold;font-size:16px;color:#374151;">套用到建案</span>
-            <div style="font-size:13px;color:#6b7280;margin-top:4px;">範本：${t.name}</div>
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:560px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:60px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <span style="font-weight:bold;font-size:16px;color:#374151;">套用到建案</span>
+              <div style="font-size:13px;color:#6b7280;margin-top:4px;">範本：${t.name}</div>
+            </div>
+            <button id="__applyCloseBtn__" style="background:#fff;border:1px solid #d1d5db;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;color:#374151;">✕</button>
           </div>
-          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:10px;">
-            ${PROJECTS.map(p => `
-              <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
-                <input type="checkbox" ${t.appliedTo.includes(p) ? 'checked' : ''}> ${p}
-                ${t.appliedTo.includes(p) ? '<span style="margin-left:auto;font-size:12px;color:#0d9488;">目前套用中</span>' : ''}
-              </label>`).join('')}
-            <div style="font-size:12px;color:#9ca3af;margin-top:4px;">※ 套用後，該建案各戶的繳款紀錄將依此範本產生期別；已有繳款紀錄的戶別不受影響</div>
+          <div style="padding:16px 24px;">
+            <input id="__applyKw__" type="text" placeholder="輸入建案名稱關鍵字搜尋（例：新、河岸）" style="${inputStyle};margin-bottom:8px;">
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:10px;">※ 一個建案同時只能套用一組範本；已套用其他範本的建案，勾選後將改套用本範本</div>
+            <div id="__applyList__" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
           </div>
           <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
             <button id="__applySaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">套用</button>
@@ -255,10 +354,52 @@
         </div>`;
 
       document.body.appendChild(modal);
+      const checked = new Set();   // 本次勾選要套用的建案
+
+      const renderList = () => {
+        const kw = modal.querySelector('#__applyKw__').value.trim();
+        const listEl = modal.querySelector('#__applyList__');
+        if (!kw) {
+          listEl.innerHTML = '<div style="font-size:13px;color:#9ca3af;text-align:center;padding:18px;">請先輸入關鍵字搜尋建案</div>';
+          return;
+        }
+        const items = PROJECTS.filter(p => p.name.includes(kw));
+        listEl.innerHTML = items.length ? items.map(p => {
+          const isCurrent = p.appliedTpl === id;
+          const otherTpl  = p.appliedTpl && p.appliedTpl !== id ? tplName(p.appliedTpl) : '';
+          return `
+            <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:${isCurrent ? 'default' : 'pointer'};padding:10px 14px;border:1px solid ${isCurrent ? '#99f6e4' : '#e5e7eb'};border-radius:6px;${isCurrent ? 'background:#f0fdfa;' : ''}">
+              <input type="checkbox" data-name="${p.name}" ${isCurrent ? 'checked disabled' : (checked.has(p.name) ? 'checked' : '')}>
+              <span>${p.name}</span>
+              <span style="margin-left:auto;font-size:12px;color:${isCurrent ? '#0d9488' : (otherTpl ? '#d97706' : '#9ca3af')};">
+                ${isCurrent ? '已套用本範本' : (otherTpl ? '目前套用：' + otherTpl : '尚未套用範本')}
+              </span>
+            </label>`;
+        }).join('') : '<div style="font-size:13px;color:#9ca3af;text-align:center;padding:18px;">查無符合的建案</div>';
+
+        listEl.querySelectorAll('input[type=checkbox]:not(:disabled)').forEach(cb => {
+          cb.addEventListener('change', () => cb.checked ? checked.add(cb.dataset.name) : checked.delete(cb.dataset.name));
+        });
+      };
+      renderList();
+      modal.querySelector('#__applyKw__').addEventListener('input', renderList);
+
       const close = () => modal.remove();
+      modal.querySelector('#__applyCloseBtn__').onclick = close;
       modal.querySelector('#__applyCancelBtn__').onclick = close;
-      modal.querySelector('#__applySaveBtn__').onclick = () => { alert('已套用（範例）'); close(); };
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__applySaveBtn__').onclick = () => {
+        if (!checked.size) { alert('尚未勾選任何建案'); return; }
+        // 覆蓋提醒：勾選中已套用其他範本的建案
+        const overwrite = [...checked].filter(n => {
+          const p = PROJECTS.find(x => x.name === n);
+          return p.appliedTpl && p.appliedTpl !== id;
+        });
+        if (overwrite.length && !confirm(`以下建案已套用其他範本，將改套用「${t.name}」：\n${overwrite.join('、')}\n\n確定要覆蓋嗎？`)) return;
+        checked.forEach(n => { PROJECTS.find(x => x.name === n).appliedTpl = id; });
+        close();
+        render();   // 重算各範本的套用數
+      };
     }
 
     render();
