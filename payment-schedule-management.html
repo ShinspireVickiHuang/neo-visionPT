@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>繳款期別管理 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <!-- 頂部 -->
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <!-- 左側選單 -->
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <!-- 主內容 -->
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">繳款期別管理</h2>
+        <p class="text-xs text-gray-400 mt-1">建立多組期別範本（付款辦法），供各建案選擇套用；套用後即可在「繳款紀錄管理」編輯各戶的繳款紀錄</p>
+      </div>
+
+      <!-- 工具列 -->
+      <div class="bg-white rounded shadow-sm p-6 mb-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium">範本名稱</label>
+            <input id="fName" type="text" placeholder="搜尋範本名稱" class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+          </div>
+          <button id="btnAddTpl" class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm"><i data-lucide="plus" class="w-4 h-4"></i> 新增期別範本</button>
+        </div>
+      </div>
+
+      <!-- 範本清單 -->
+      <div id="tplList" class="space-y-4"></div>
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ============================================================
+    // 期別範本範例資料（之後改為從 API 帶入）
+    // dueRule：應繳時點規則（簽約後 N 天／指定工程節點）
+    // ============================================================
+    const PROJECTS = ['新理想', '畫世代', 'TheTop'];
+    const TEMPLATES = [
+      {
+        id: 1, name: '標準 6 期（訂簽開＋工程期款）', appliedTo: ['新理想'],
+        stages: [
+          { stage:'訂金',      pct:3,  dueRule:'下訂當日' },
+          { stage:'簽約款',    pct:7,  dueRule:'簽約後 7 天' },
+          { stage:'開工款',    pct:5,  dueRule:'開工日' },
+          { stage:'工程期款1', pct:5,  dueRule:'結構體完成 1/2' },
+          { stage:'工程期款2', pct:5,  dueRule:'結構體完成' },
+          { stage:'交屋款',    pct:75, dueRule:'交屋（含銀行貸款）' },
+        ]
+      },
+      {
+        id: 2, name: '精簡 3 期（訂簽＋交屋）', appliedTo: ['畫世代', 'TheTop'],
+        stages: [
+          { stage:'訂金',   pct:5,  dueRule:'下訂當日' },
+          { stage:'簽約款', pct:10, dueRule:'簽約後 7 天' },
+          { stage:'交屋款', pct:85, dueRule:'交屋（含銀行貸款）' },
+        ]
+      },
+      {
+        id: 3, name: '工程期款 12 期（按月）', appliedTo: [],
+        stages: [
+          { stage:'訂金',        pct:3,  dueRule:'下訂當日' },
+          { stage:'簽約款',      pct:7,  dueRule:'簽約後 7 天' },
+          { stage:'開工款',      pct:5,  dueRule:'開工日' },
+          { stage:'工程期款1-12', pct:1,  dueRule:'開工後按月繳付（每期 1%，共 12 期）' },
+          { stage:'交屋款',      pct:73, dueRule:'交屋（含銀行貸款）' },
+        ]
+      },
+    ];
+
+    function render() {
+      const kw = document.getElementById('fName').value.trim();
+      const list = document.getElementById('tplList');
+      list.innerHTML = '';
+      const rows = TEMPLATES.filter(t => !kw || t.name.includes(kw));
+
+      if (!rows.length) {
+        list.innerHTML = '<div class="bg-white rounded shadow-sm p-10 text-center text-gray-400 text-sm">查無符合的期別範本</div>';
+        return;
+      }
+
+      rows.forEach(t => {
+        const totalPct = t.stages.reduce((s, x) => s + x.pct, 0);
+        const stageRows = t.stages.map((s, i) => `
+          <tr class="${i % 2 ? 'bg-gray-50' : ''}">
+            <td class="p-2.5 text-sm whitespace-nowrap">${i + 1}</td>
+            <td class="p-2.5 text-sm whitespace-nowrap font-medium">${s.stage}</td>
+            <td class="p-2.5 text-sm text-right whitespace-nowrap">${s.pct}%</td>
+            <td class="p-2.5 text-sm text-gray-600">${s.dueRule}</td>
+          </tr>`).join('');
+
+        const applied = t.appliedTo.length
+          ? t.appliedTo.map(p => `<span class="inline-block bg-teal-50 text-teal-700 border border-teal-200 text-xs px-2 py-0.5 rounded">${p}</span>`).join(' ')
+          : '<span class="text-xs text-gray-400">尚未套用</span>';
+
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded shadow-sm p-6';
+        card.innerHTML = `
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <div class="flex items-center gap-3">
+                <h3 class="text-base font-bold text-gray-700">${t.name}</h3>
+                <span class="text-xs ${totalPct === 100 ? 'text-green-600' : 'text-red-500 font-bold'}">合計 ${totalPct}%${totalPct !== 100 ? '（未達 100%，請檢查）' : ''}</span>
+              </div>
+              <div class="mt-2 flex items-center gap-2 flex-wrap">
+                <span class="text-xs text-gray-500">已套用建案：</span>${applied}
+              </div>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button class="border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-xs flex items-center gap-1 hover:bg-gray-100" onclick="openTplModal(${t.id})"><i data-lucide="edit-3" class="w-3 h-3"></i> 編輯</button>
+              <button class="border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-xs flex items-center gap-1 hover:bg-gray-100" onclick="alert('複製範本（範例）：${t.name}')"><i data-lucide="copy" class="w-3 h-3"></i> 複製</button>
+              <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-3 py-1.5 rounded text-xs flex items-center gap-1" onclick="openApplyModal(${t.id})"><i data-lucide="building-2" class="w-3 h-3"></i> 套用到建案</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto border rounded">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="p-2.5 text-left text-xs text-gray-500 font-medium w-12">#</th>
+                  <th class="p-2.5 text-left text-xs text-gray-500 font-medium">期別</th>
+                  <th class="p-2.5 text-right text-xs text-gray-500 font-medium w-28">繳款比例</th>
+                  <th class="p-2.5 text-left text-xs text-gray-500 font-medium">應繳時點</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">${stageRows}</tbody>
+            </table>
+          </div>`;
+        list.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    document.getElementById('fName').addEventListener('input', render);
+    document.getElementById('btnAddTpl').onclick = () => openTplModal(null);
+
+    // ============================================================
+    // 新增／編輯範本彈窗：範本名稱＋期別明細（可增刪列）
+    // ============================================================
+    function openTplModal(id) {
+      const old = document.getElementById('__tplModal__');
+      if (old) old.remove();
+      const t = id ? TEMPLATES.find(x => x.id === id) : null;
+      const stages = t ? t.stages : [{ stage:'訂金', pct:'', dueRule:'' }];
+
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:7px 10px;font-size:13px;background:#f9fafb;box-sizing:border-box;";
+      const stageRow = (s = { stage:'', pct:'', dueRule:'' }) => `
+        <tr>
+          <td style="padding:6px;"><input type="text" value="${s.stage}" placeholder="期別名稱" style="${inputStyle}"></td>
+          <td style="padding:6px;width:110px;"><input type="number" value="${s.pct}" placeholder="%" min="0" max="100" style="${inputStyle};text-align:right;"></td>
+          <td style="padding:6px;"><input type="text" value="${s.dueRule}" placeholder="應繳時點（如：簽約後 7 天／開工日）" style="${inputStyle}"></td>
+          <td style="padding:6px;width:44px;text-align:center;"><button onclick="this.closest('tr').remove()" style="border:1px solid #fca5a5;background:#fff;color:#ef4444;width:28px;height:28px;border-radius:4px;cursor:pointer;">✕</button></td>
+        </tr>`;
+
+      const modal = document.createElement('div');
+      modal.id = '__tplModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:760px;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">${t ? '編輯期別範本' : '新增期別範本'}</span>
+            <button id="__tplCloseBtn__" style="background:#fff;border:1px solid #d1d5db;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;color:#374151;">✕</button>
+          </div>
+          <div style="padding:18px 24px;">
+            <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">範本名稱 <span style="color:#ef4444;">*</span></label>
+            <input type="text" value="${t ? t.name : ''}" placeholder="例：標準 6 期（訂簽開＋工程期款）" style="${inputStyle};margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:13px;font-weight:bold;color:#374151;">期別明細 <span style="font-weight:normal;color:#9ca3af;">（比例合計須為 100%）</span></span>
+              <button id="__addStageBtn__" style="background:#5d6b7b;color:#fff;border:0;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:12px;">＋ 加一期</button>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#f3f4f6;">
+                  <th style="padding:8px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">期別</th>
+                  <th style="padding:8px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">比例(%)</th>
+                  <th style="padding:8px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">應繳時點</th>
+                  <th style="padding:8px;"></th>
+                </tr>
+              </thead>
+              <tbody id="__stageTbody__">${stages.map(stageRow).join('')}</tbody>
+            </table>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__tplSaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">儲存</button>
+            <button id="__tplCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__tplCloseBtn__').onclick = close;
+      modal.querySelector('#__tplCancelBtn__').onclick = close;
+      modal.querySelector('#__tplSaveBtn__').onclick = () => { alert('已儲存（範例）'); close(); };
+      modal.querySelector('#__addStageBtn__').onclick = () => {
+        modal.querySelector('#__stageTbody__').insertAdjacentHTML('beforeend', stageRow());
+      };
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
+
+    // ============================================================
+    // 套用到建案彈窗：勾選建案後套用
+    // ============================================================
+    function openApplyModal(id) {
+      const old = document.getElementById('__applyModal__');
+      if (old) old.remove();
+      const t = TEMPLATES.find(x => x.id === id);
+
+      const modal = document.createElement('div');
+      modal.id = '__applyModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">套用到建案</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">範本：${t.name}</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:10px;">
+            ${PROJECTS.map(p => `
+              <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
+                <input type="checkbox" ${t.appliedTo.includes(p) ? 'checked' : ''}> ${p}
+                ${t.appliedTo.includes(p) ? '<span style="margin-left:auto;font-size:12px;color:#0d9488;">目前套用中</span>' : ''}
+              </label>`).join('')}
+            <div style="font-size:12px;color:#9ca3af;margin-top:4px;">※ 套用後，該建案各戶的繳款紀錄將依此範本產生期別；已有繳款紀錄的戶別不受影響</div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__applySaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">套用</button>
+            <button id="__applyCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__applyCancelBtn__').onclick = close;
+      modal.querySelector('#__applySaveBtn__').onclick = () => { alert('已套用（範例）'); close(); };
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
+
+    render();
+  </script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>

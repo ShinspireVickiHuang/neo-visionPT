@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>繳款紀錄管理 - 銷控系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="content-bg font-sans text-gray-700">
+
+  <!-- 頂部 -->
+  <header class="bg-white border-b h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <button class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <h1 class="text-2xl font-bold tracking-wider text-gray-800">銷控系統</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border text-xs font-semibold">A</div>
+        <span class="text-sm">admin</span>
+      </div>
+      <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-1.5 rounded text-sm">登出</button>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <!-- 左側選單 -->
+    <aside id="sidebar" class="w-64 sidebar-bg border-r hidden md:block flex-shrink-0"></aside>
+
+    <!-- 主內容 -->
+    <main class="flex-1 p-6 overflow-x-hidden">
+      <div class="mb-6">
+        <h2 class="text-lg font-bold text-gray-700">繳款紀錄管理</h2>
+      </div>
+
+      <!-- 搜尋條件 -->
+      <div class="bg-white rounded shadow-sm p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">建案</label>
+            <select id="fProject" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">建案</option>
+              <option>新理想</option>
+              <option>畫世代</option>
+              <option>TheTop</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">戶別</label>
+            <input id="fUnit" type="text" placeholder="戶別" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium w-20 flex-shrink-0">備註</label>
+            <input id="fMemo" type="text" placeholder="請輸入備註搜尋關鍵字" class="flex-1 border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-end gap-2 mt-6">
+          <button id="btnReset" class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> 重置</button>
+          <button id="btnSearch" class="flex items-center gap-1 bg-[#5d6b7b] hover:bg-[#4a5563] text-white px-4 py-2 rounded text-sm"><i data-lucide="search" class="w-4 h-4"></i> 查詢</button>
+          <button class="flex items-center gap-1 bg-[#a09080] hover:bg-[#8d7d70] text-white px-4 py-2 rounded text-sm"><i data-lucide="download" class="w-4 h-4"></i> 匯出</button>
+        </div>
+      </div>
+
+      <!-- 列表 -->
+      <div class="bg-white rounded shadow-sm">
+        <div class="overflow-x-auto p-6">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="table-header-bg text-white">
+                <th class="p-3 text-left font-medium whitespace-nowrap">建案</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">戶別</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">所有權人</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">簽約日期</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap w-72">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody" class="divide-y"></tbody>
+          </table>
+          <div id="emptyHint" class="hidden text-center text-gray-400 py-10 text-sm">查無符合條件的戶別</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ============================================================
+    // 範例戶別資料（之後改為從 API 帶入）
+    // ============================================================
+    // signDate／parkingNo／各金額欄位＝來自銷控表（此處為範例值，之後由 API 帶入）
+    const HOUSES = [
+      { id:1034, project:'新理想', unit:'A1', owner:'陳太太', signDate:'2026-06-01', memo:'', contractCode:'CT-2026-0601-A1', parkingNo:'B1-15', totalPrice:'30,000,000', housePrice:'27,200,000', unitPrice:'400,000', parkingPrice:'2,800,000',
+        attachments:[
+          { name:'房屋買賣合約書_A1.pdf', type:'合約', date:'2026-06-01', by:'徐X恩' },
+          { name:'付款明細表_A1.xlsx',   type:'附件', date:'2026-06-03', by:'徐X恩' },
+        ],
+        paidRecords:{
+          '訂金':   { paidDate:'2026-06-01', paidAmt:900000,  method:'匯款', memo:'' },
+          '簽約款': { paidDate:'2026-06-07', paidAmt:2100000, method:'匯款', memo:'' },
+          '開工款': { paidDate:'2026-06-28', paidAmt:1500000, method:'支票', memo:'客戶出國延繳，主管同意' },
+        } },
+      { id:1035, project:'新理想', unit:'B1', owner:'vicki', signDate:'2026-06-01', memo:'', contractCode:'CT-2026-0601-B1', parkingNo:'B1-16', totalPrice:'28,500,000', housePrice:'26,000,000', unitPrice:'380,000', parkingPrice:'2,500,000',
+        attachments:[
+          { name:'房屋買賣合約書_B1.pdf', type:'合約', date:'2026-06-01', by:'王小明' },
+        ],
+        paidRecords:{
+          '訂金':   { paidDate:'2026-06-01', paidAmt:855000, method:'現金', memo:'' },
+          '簽約款': { paidDate:'',           paidAmt:500000, method:'匯款', memo:'部分繳，餘款約定 7/15 前補足' },
+        } },
+      { id:1036, project:'新理想', unit:'C1', owner:'林先生', signDate:'2026-06-01', memo:'', contractCode:'', parkingNo:'', totalPrice:'26,000,000', housePrice:'26,000,000', unitPrice:'371,000', parkingPrice:'0', attachments:[], paidRecords:{} },
+      { id:1037, project:'新理想', unit:'D1', owner:'',      signDate:'', memo:'' },
+      { id:1038, project:'新理想', unit:'E1', owner:'',      signDate:'', memo:'' },
+    ];
+
+    // 依搜尋條件過濾
+    function getFiltered() {
+      const project = document.getElementById('fProject').value;
+      const unit    = document.getElementById('fUnit').value.trim();
+      const memo    = document.getElementById('fMemo').value.trim();
+      return HOUSES.filter(h => {
+        if (project && h.project !== project) return false;
+        if (unit && !h.unit.includes(unit)) return false;
+        if (memo && !h.memo.includes(memo)) return false;
+        return true;
+      });
+    }
+
+    // 列表列的操作按鈕（編輯已併入合約及附件管理）
+    function actionButtons(h) {
+      return `<div class="flex flex-wrap gap-1 items-start min-w-[240px]">
+        <button class="border border-sky-300 text-sky-600 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-sky-50" onclick="openPaymentModal(${h.id})"><i data-lucide="banknote" class="w-3 h-3"></i> 戶別款項</button>
+        <button class="border border-sky-300 text-sky-600 px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-sky-50" onclick="openModal(${h.id})"><i data-lucide="file-text" class="w-3 h-3"></i> 合約及附件管理</button>
+      </div>`;
+    }
+
+    function render() {
+      const rows = getFiltered();
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+      rows.forEach((h, i) => {
+        const tr = document.createElement('tr');
+        tr.className = i % 2 ? 'bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50';
+        tr.innerHTML = `
+          <td class="p-3 align-top whitespace-nowrap">${h.project}</td>
+          <td class="p-3 align-top whitespace-nowrap">${h.unit}</td>
+          <td class="p-3 align-top whitespace-nowrap">${h.owner || ''}</td>
+          <td class="p-3 align-top whitespace-nowrap">${h.signDate || ''}</td>
+          <td class="p-3 align-top">${actionButtons(h)}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('emptyHint').classList.toggle('hidden', rows.length !== 0);
+      lucide.createIcons();
+    }
+
+    document.getElementById('btnSearch').onclick = render;
+    document.getElementById('btnReset').onclick = () => {
+      ['fProject','fUnit','fMemo'].forEach(id => document.getElementById(id).value = '');
+      render();
+    };
+    // ============================================================
+    // 合約及附件管理彈窗（已合併原編輯功能）
+    // 戶別基本資料全部來自銷控表，唯讀展示；此處只管理合約與附件
+    // ============================================================
+    function openModal(id) {
+      const old = document.getElementById('__houseModal__');
+      if (old) old.remove();
+      const h = HOUSES.find(x => x.id === id);
+
+      const modal = document.createElement('div');
+      modal.id = '__houseModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+      // 兩欄式欄位
+      const field = (label, control, required = false) => `
+        <div>
+          <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">${label}${required ? ' <span style="color:#ef4444;">*</span>' : ''}</label>
+          ${control}
+        </div>`;
+      const text = (ph, val = '') => `<input type="text" placeholder="${ph}" value="${val}" style="${inputStyle}">`;
+
+      // 唯讀摘要格（來自銷控表）
+      const infoCell = (label, val) => `
+        <div>
+          <div style="font-size:12px;color:#9ca3af;margin-bottom:2px;">${label}</div>
+          <div style="font-size:14px;color:#374151;font-weight:500;">${val || '—'}</div>
+        </div>`;
+
+      // 附件範例資料
+      const files = h.attachments || [];
+      const fileRows = files.length ? files.map((f, i) => `
+        <tr style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
+          <td style="padding:10px 12px;font-size:13px;">${f.name}</td>
+          <td style="padding:10px 12px;font-size:13px;">${f.type}</td>
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${f.date}</td>
+          <td style="padding:10px 12px;font-size:13px;">${f.by}</td>
+          <td style="padding:10px 12px;white-space:nowrap;">
+            <button onclick="alert('下載（範例）：${f.name}')" style="border:1px solid #d1d5db;background:#fff;color:#374151;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;">下載</button>
+            <button onclick="alert('刪除（範例）：${f.name}')" style="border:1px solid #fca5a5;background:#fff;color:#ef4444;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;">刪除</button>
+          </td>
+        </tr>`).join('')
+        : '<tr><td colspan="5" style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">尚無附件</td></tr>';
+
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:900px;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">合約及附件管理　<span style="color:#6b7280;font-weight:normal;font-size:14px;">${h.project}／${h.unit}</span></span>
+            <button id="__closeBtn__" style="background:#fff;border:1px solid #d1d5db;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;color:#374151;">✕</button>
+          </div>
+
+          <!-- 戶別資訊（來自銷控表，唯讀） -->
+          <div style="margin:18px 24px 0;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;">
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:10px;">戶別資訊（來自銷控表，自動帶入）</div>
+            <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px 20px;">
+              ${infoCell('建案', h.project)}
+              ${infoCell('戶別', h.unit)}
+              ${infoCell('所有權人（購買人姓名）', h.owner)}
+              ${infoCell('簽約日期', h.signDate)}
+              ${infoCell('車位號碼', h.parkingNo)}
+              ${infoCell('合約總價', h.totalPrice)}
+              ${infoCell('房屋金額', h.housePrice)}
+              ${infoCell('每坪單價', h.unitPrice)}
+              ${infoCell('車位金額', h.parkingPrice)}
+            </div>
+          </div>
+
+          <!-- 合約資訊（本模組可維護；所有權人＝購買人姓名，由銷控帶入不在此編輯） -->
+          <div style="padding:18px 24px 0;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;">
+            ${field('合約代碼', text('合約代碼', h.contractCode || ''))}
+            <div></div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">備註</label>
+              <textarea rows="2" placeholder="備註" style="${inputStyle};resize:vertical;font-family:inherit;">${h.memo || ''}</textarea>
+            </div>
+          </div>
+
+          <!-- 附件管理 -->
+          <div style="margin:18px 24px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+            <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+              <span style="font-weight:bold;color:#374151;font-size:14px;">附件清單</span>
+              <button onclick="alert('上傳附件（範例）')" style="background:#a09080;color:#fff;border:0;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">＋ 上傳附件</button>
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#f3f4f6;">
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">檔案名稱</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">類型</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">上傳日期</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">上傳人</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">操作</th>
+                </tr>
+              </thead>
+              <tbody>${fileRows}</tbody>
+            </table>
+          </div>
+
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__confirmBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">儲存</button>
+            <button id="__cancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">關閉</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__closeBtn__').onclick = close;
+      modal.querySelector('#__cancelBtn__').onclick = close;
+      modal.querySelector('#__confirmBtn__').onclick = () => { alert('已儲存（範例）'); close(); };
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
+
+    // ============================================================
+    // 戶別款項彈窗（本模組核心：該戶各期繳款紀錄）
+    // 期別由「繳款期別管理」的範本套用到建案後自動展開：
+    //   應繳金額 ＝ 合約總價 × 各期比例%（不用人工填）
+    // 實繳資訊（日期／金額／方式）才是人工登錄
+    // ============================================================
+    const fmtAmt = n => n ? n.toLocaleString('zh-TW') : '0';
+
+    // 期別範本（與「繳款期別管理」同步；之後由 API 帶入）
+    const TEMPLATES = {
+      standard6: { name:'標準 6 期（訂簽開＋工程期款）', stages:[
+        { stage:'訂金',      pct:3,  dueRule:'下訂當日' },
+        { stage:'簽約款',    pct:7,  dueRule:'簽約後 7 天' },
+        { stage:'開工款',    pct:5,  dueRule:'開工日' },
+        { stage:'工程期款1', pct:5,  dueRule:'結構體完成 1/2' },
+        { stage:'工程期款2', pct:5,  dueRule:'結構體完成' },
+        { stage:'交屋款',    pct:75, dueRule:'交屋（含銀行貸款）' },
+      ]},
+    };
+    // 各建案套用的範本（由「繳款期別管理」的套用設定決定）
+    const PROJECT_TEMPLATE = { '新理想': 'standard6' };
+
+    // 依規則推算應繳日期（可推算的才給日期，其餘顯示工程節點文字）
+    function calcDueDate(rule, signDate) {
+      if (!signDate) return '';
+      if (rule === '下訂當日') return signDate;
+      const m = rule.match(/^簽約後 (\d+) 天$/);
+      if (m) {
+        const d = new Date(signDate + 'T00:00:00');
+        d.setDate(d.getDate() + Number(m[1]));
+        return d.toISOString().slice(0, 10);
+      }
+      return '';   // 開工日、工程節點等：日期由工程進度確定
+    }
+
+    // 將範本 × 合約總價 展開成該戶期別款項（最後一期吸收尾差，合計必等於總價）
+    // 另合併「單戶新增期款」（h.extraStages：因變更追加、議約調整等個案狀況）
+    function expandPayments(h) {
+      const tplKey = PROJECT_TEMPLATE[h.project];
+      const tpl = tplKey && TEMPLATES[tplKey];
+      if (!tpl) return null;
+      const total = Number(String(h.totalPrice).replace(/,/g, '')) || 0;
+      let allocated = 0;
+      const fromTpl = tpl.stages.map((s, i) => {
+        const isLast = i === tpl.stages.length - 1;
+        const dueAmt = isLast ? total - allocated : Math.round(total * s.pct / 100);
+        allocated += dueAmt;
+        const paid = (h.paidRecords || {})[s.stage] || {};
+        return {
+          stage: s.stage, pct: s.pct, dueRule: s.dueRule,
+          dueDate: calcDueDate(s.dueRule, h.signDate),
+          dueAmt, extra: false,
+          paidDate: paid.paidDate || '', paidAmt: paid.paidAmt || 0,
+          method: paid.method || '', memo: paid.memo || '', proofs: paid.proofs || [],
+        };
+      });
+      const fromExtra = (h.extraStages || []).map(s => {
+        const paid = (h.paidRecords || {})[s.stage] || {};
+        return {
+          stage: s.stage, pct: null, dueRule: s.reason || '單戶新增',
+          dueDate: s.dueDate || '', dueAmt: s.dueAmt || 0, extra: true,
+          paidDate: paid.paidDate || '', paidAmt: paid.paidAmt || 0,
+          method: paid.method || '', memo: paid.memo || s.reason || '', proofs: paid.proofs || [],
+        };
+      });
+      return fromTpl.concat(fromExtra);
+    }
+
+    // 判定單期繳款狀態
+    function paymentStatus(p) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (p.paidAmt >= p.dueAmt && p.dueAmt > 0) return 'paid';
+      if (p.paidAmt > 0) return 'partial';
+      if (p.dueDate && today > p.dueDate) return 'overdue';
+      return 'pending';
+    }
+    const PAY_STATUS = {
+      paid:    { text:'已繳',     style:'background:#d1fae5;color:#047857;border:1px solid #6ee7b7;' },
+      partial: { text:'部分繳',   style:'background:#ffedd5;color:#c2410c;border:1px solid #fdba74;' },
+      overdue: { text:'逾期未繳', style:'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;' },
+      pending: { text:'未到期',   style:'background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db;' },
+    };
+
+    function openPaymentModal(id) {
+      const old = document.getElementById('__payModal__');
+      if (old) old.remove();
+      const h = HOUSES.find(x => x.id === id);
+      const pays = expandPayments(h);
+      const noTpl = pays === null;
+
+      const paidSum = (pays || []).reduce((s, p) => s + (p.paidAmt || 0), 0);
+      const dueSum  = (pays || []).reduce((s, p) => s + (p.dueAmt || 0), 0);
+      const remain  = dueSum - paidSum;
+      const pct     = dueSum ? Math.round(paidSum / dueSum * 100) : 0;
+
+      const statCard = (label, val, color) => `
+        <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 16px;">
+          <div style="font-size:12px;color:#9ca3af;">${label}</div>
+          <div style="font-size:18px;font-weight:bold;color:${color};margin-top:2px;">${val}</div>
+        </div>`;
+
+      const payRows = noTpl
+        ? '<tr><td colspan="10" style="padding:16px;text-align:center;color:#ef4444;font-size:13px;">此建案尚未套用期別範本，請先到 <a href="payment-schedule-management.html" style="color:#2563eb;text-decoration:underline;">繳款期別管理</a> 套用</td></tr>'
+        : pays.map((p, i) => {
+        const st = PAY_STATUS[paymentStatus(p)];
+        return `
+        <tr style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;font-weight:500;">${p.stage}${p.extra ? ' <span style="font-size:11px;background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;padding:1px 6px;border-radius:4px;">單戶新增</span>' : ''}</td>
+          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;color:#6b7280;">${p.pct !== null ? p.pct + '%' : '—'}</td>
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.dueDate || (p.dueRule && !p.extra ? '<span style="color:#9ca3af;">' + p.dueRule + '</span>' : '—')}</td>
+          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;">${fmtAmt(p.dueAmt)}</td>
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.paidDate || '—'}</td>
+          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;">${fmtAmt(p.paidAmt)}</td>
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.method || '—'}</td>
+          <td style="padding:10px 12px;white-space:nowrap;"><span style="font-size:12px;padding:3px 10px;border-radius:4px;${st.style}">${st.text}</span></td>
+          <td style="padding:10px 12px;font-size:12px;color:#6b7280;max-width:160px;">${p.memo || ''}${(p.proofs || []).map(f => `<div style="white-space:nowrap;margin-top:3px;"><a href="#" onclick="alert('下載繳款證明（範例）：${f}');return false;" style="color:#2563eb;text-decoration:none;">📎 ${f}</a></div>`).join('')}</td>
+          <td style="padding:10px 12px;white-space:nowrap;">
+            ${paymentStatus(p) !== 'paid' ? `<button onclick="openPayRecordModal(${h.id}, '${p.stage}')" style="border:0;background:#a09080;color:#fff;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">登錄繳款</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+
+      const modal = document.createElement('div');
+      modal.id = '__payModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:1050px;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">戶別款項　<span style="color:#6b7280;font-weight:normal;font-size:14px;">${h.project}／${h.unit}${h.owner ? '／' + h.owner : ''}</span></span>
+            <button id="__payCloseBtn__" style="background:#fff;border:1px solid #d1d5db;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:16px;color:#374151;">✕</button>
+          </div>
+
+          <!-- 繳款摘要 -->
+          <div style="display:flex;gap:12px;margin:18px 24px 0;">
+            ${statCard('應繳總額', fmtAmt(dueSum), '#1f2937')}
+            ${statCard('已繳金額', fmtAmt(paidSum), '#047857')}
+            ${statCard('未繳金額', fmtAmt(remain), remain > 0 ? '#b91c1c' : '#047857')}
+            ${statCard('繳款進度', pct + '%', '#1f2937')}
+          </div>
+
+          <!-- 期別款項表 -->
+          <div style="margin:18px 24px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+            <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+              <div>
+                <span style="font-weight:bold;color:#374151;font-size:14px;">期別款項明細</span>
+                <span style="font-size:12px;color:#9ca3af;margin-left:8px;">期別依套用範本自動展開，應繳金額＝合約總價 × 比例</span>
+              </div>
+              <button onclick="openExtraStageModal(${h.id})" style="background:#a09080;color:#fff;border:0;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">＋ 新增期款</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr style="background:#f3f4f6;">
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">期別</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">比例</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">應繳日期／時點</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">應繳金額(元)</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">實繳日期</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">實繳金額(元)</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">繳款方式</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">狀態</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;">備註</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>${payRows}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__payDoneBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">關閉</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__payCloseBtn__').onclick = close;
+      modal.querySelector('#__payDoneBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
+
+    // ============================================================
+    // 新增期款（單戶）：因變更追加、議約調整等個案狀況加開期款
+    // 儲存後寫入該戶 extraStages，戶別款項表即時重算
+    // ============================================================
+    function openExtraStageModal(id) {
+      const old = document.getElementById('__extraModal__');
+      if (old) old.remove();
+      const h = HOUSES.find(x => x.id === id);
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+
+      const modal = document.createElement('div');
+      modal.id = '__extraModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">新增期款</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${h.project}／${h.unit}　※ 僅影響本戶，不影響範本</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">期款名稱 <span style="color:#ef4444;">*</span></label>
+              <input id="__exStage__" type="text" placeholder="例：變更追加款、車位加購款" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">應繳日期 <span style="color:#ef4444;">*</span></label>
+              <input id="__exDate__" type="date" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">應繳金額(元) <span style="color:#ef4444;">*</span></label>
+              <input id="__exAmt__" type="number" min="0" placeholder="應繳金額" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">事由 <span style="color:#9ca3af;font-size:12px;">（必填，說明為何加開此期款）</span></label>
+              <textarea id="__exReason__" rows="2" placeholder="例：客變追加工程款、加購車位" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <div id="__exErr__" style="display:none;font-size:12px;color:#ef4444;"></div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__exSaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">確定新增</button>
+            <button id="__exCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__exCancelBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__exSaveBtn__').onclick = () => {
+        const stage  = modal.querySelector('#__exStage__').value.trim();
+        const date   = modal.querySelector('#__exDate__').value;
+        const amt    = Number(modal.querySelector('#__exAmt__').value);
+        const reason = modal.querySelector('#__exReason__').value.trim();
+        const err    = modal.querySelector('#__exErr__');
+        // 驗證：名稱／日期／金額／事由必填，名稱不可與既有期別重複
+        const exists = (expandPayments(h) || []).some(p => p.stage === stage);
+        let msg = '';
+        if (!stage) msg = '請填期款名稱';
+        else if (exists) msg = '期款名稱與既有期別重複，請換一個名稱';
+        else if (!date) msg = '請選應繳日期';
+        else if (!amt || amt <= 0) msg = '應繳金額須大於 0';
+        else if (!reason) msg = '請填寫事由';
+        if (msg) { err.textContent = '※ ' + msg; err.style.display = 'block'; return; }
+
+        (h.extraStages ||= []).push({ stage, dueDate: date, dueAmt: amt, reason });
+        close();
+        openPaymentModal(id);   // 重開戶別款項，立即看到新期款與重算後的摘要
+      };
+    }
+
+    // ============================================================
+    // 登錄繳款：填實繳日期／金額／方式，寫入該戶 paidRecords 後重算狀態
+    // ============================================================
+    function openPayRecordModal(id, stage) {
+      const old = document.getElementById('__recModal__');
+      if (old) old.remove();
+      const h = HOUSES.find(x => x.id === id);
+      const p = (expandPayments(h) || []).find(x => x.stage === stage);
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+
+      const modal = document.createElement('div');
+      modal.id = '__recModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">登錄繳款</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${h.project}／${h.unit}　${stage}　應繳 ${fmtAmt(p.dueAmt)} 元${p.paidAmt ? '（已繳 ' + fmtAmt(p.paidAmt) + '）' : ''}</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實繳日期 <span style="color:#ef4444;">*</span></label>
+              <input id="__rcDate__" type="date" value="${p.paidDate || ''}" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實繳金額(元)・累計 <span style="color:#ef4444;">*</span></label>
+              <input id="__rcAmt__" type="number" min="0" value="${p.paidAmt || ''}" placeholder="本期累計已繳金額" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">繳款方式 <span style="color:#ef4444;">*</span></label>
+              <select id="__rcMethod__" style="${inputStyle}">
+                <option value="">請選擇</option>
+                ${['匯款','支票','現金','刷卡'].map(m => `<option ${p.method === m ? 'selected' : ''}>${m}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">繳款證明 <span style="color:#9ca3af;font-size:12px;">（匯款單、支票影本、收據等，可多張）</span></label>
+              <input id="__rcProof__" type="file" accept="image/*,.pdf" multiple style="${inputStyle};padding:6px 10px;">
+              ${(p.proofs || []).length ? `
+              <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+                ${p.proofs.map(f => `<div style="font-size:12px;color:#374151;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:5px 10px;display:flex;align-items:center;gap:6px;">📎 ${f}<span style="margin-left:auto;color:#9ca3af;">已上傳</span></div>`).join('')}
+              </div>` : ''}
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">備註</label>
+              <textarea id="__rcMemo__" rows="2" placeholder="備註" style="${inputStyle};resize:vertical;font-family:inherit;">${p.memo || ''}</textarea>
+            </div>
+            <div id="__rcErr__" style="display:none;font-size:12px;color:#ef4444;"></div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__rcSaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">儲存</button>
+            <button id="__rcCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__rcCancelBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__rcSaveBtn__').onclick = () => {
+        const date   = modal.querySelector('#__rcDate__').value;
+        const amt    = Number(modal.querySelector('#__rcAmt__').value);
+        const method = modal.querySelector('#__rcMethod__').value;
+        const memo   = modal.querySelector('#__rcMemo__').value.trim();
+        const err    = modal.querySelector('#__rcErr__');
+        let msg = '';
+        if (!date) msg = '請選實繳日期';
+        else if (!amt || amt <= 0) msg = '實繳金額須大於 0';
+        else if (!method) msg = '請選繳款方式';
+        if (msg) { err.textContent = '※ ' + msg; err.style.display = 'block'; return; }
+
+        // 繳款證明：新上傳的檔案併入既有清單（原型存檔名，之後改為實際上傳 API）
+        const newProofs = [...modal.querySelector('#__rcProof__').files].map(f => f.name);
+        const proofs = [...(p.proofs || []), ...newProofs];
+
+        (h.paidRecords ||= {})[stage] = { paidDate: date, paidAmt: amt, method, memo, proofs };
+        close();
+        openPaymentModal(id);   // 重開戶別款項，狀態與摘要即時重算
+      };
+    }
+
+    render();
+  </script>
+  <script src="assets/js/sidebar.js"></script>
+</body>
+</html>
