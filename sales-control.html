@@ -67,7 +67,7 @@
             <select class="border rounded px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 w-80">
               <option>畫世代</option>
               <option>TheTop</option>
-              <option>新希望</option>
+              <option>新理想</option>
             </select>
           </div>
 
@@ -392,28 +392,11 @@
               <textarea rows="3" maxlength="1000" placeholder="備註" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
             </div>
 
-            <!-- 實價登錄 -->
-            <div style="margin-bottom:18px;">
-              <div style="font-weight:bold;font-size:14px;color:#374151;margin-bottom:8px;">實價登錄</div>
-
-              <!-- 應登錄日期（依簽約日期自動計算、唯讀） -->
-              <div style="margin-bottom:12px;">
-                <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">應登錄日期 <span style="color:#9ca3af;font-size:12px;">（系統自動計算：簽約日 +30 天）</span></label>
-                <input type="text" id="__declDueDate__" readonly placeholder="請先填寫上方「簽約日期」" style="${inputStyle};background:#f3f4f6;color:#374151;cursor:not-allowed;">
-              </div>
-
-              <!-- 實際登錄日期 -->
-              <div style="margin-bottom:12px;">
-                <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實際登錄日期</label>
-                <input type="date" id="__declActualDate__" placeholder="實價登錄實際日期" style="${inputStyle};">
-              </div>
-
-              <!-- 實價登錄序號 -->
-              <div>
-                <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實價登錄序號</label>
-                <input type="text" id="__declSerial__" disabled placeholder="請先填「簽約日期」與「實際登錄日期」" style="${inputStyle};">
-                <div id="__declSerialHint__" style="font-size:12px;color:#ef4444;margin-top:4px;">※ 需先填寫「簽約日期」與「實際登錄日期」後才可填寫序號</div>
-              </div>
+            <!-- 實價登錄提醒（登錄作業由行政在「實價登錄狀況表」執行，銷控表不填） -->
+            <div id="__declNoticeBox__" style="display:none;margin-bottom:18px;background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 14px;border-radius:4px;font-size:12px;color:#1e40af;line-height:1.8;">
+              <b>實價登錄提醒</b><br>
+              系統將於 <b><span id="__declNotifyDate__"></span></b>（簽約 +25 天）自動通知本建案的<b>業務</b>與<b>專案</b>；<br>
+              實際登錄日期與實價登錄序號由行政至「實價登錄狀況表」登錄。
             </div>
 
             <!-- 退戶 -->
@@ -480,49 +463,29 @@
       reasonInput.addEventListener('input', updateCommissionUI);
 
       // ============================================================
-      // 實價登錄邏輯
-      // 1. 填「簽約日期」→ 自動算出「應登錄日期」（簽約日 +30 天）
-      // 2. 「簽約日期」＋「實際登錄日期」都有值 → 才可填「實價登錄序號」
+      // 實價登錄提醒：填「簽約日期」→ 顯示自動通知日（簽約 +25 天）
+      // 系統屆時通知本建案的業務與專案；登錄作業由行政在「實價登錄狀況表」執行
       // ============================================================
-      const signDateInput  = modal.querySelector('#__signDate__');
-      const declDueDate    = modal.querySelector('#__declDueDate__');
-      const declActualDate = modal.querySelector('#__declActualDate__');
-      const declSerial     = modal.querySelector('#__declSerial__');
-      const declSerialHint = modal.querySelector('#__declSerialHint__');
+      const signDateInput   = modal.querySelector('#__signDate__');
+      const declNoticeBox   = modal.querySelector('#__declNoticeBox__');
+      const declNotifyDate  = modal.querySelector('#__declNotifyDate__');
 
-      // 依簽約日期計算應登錄日期（簽約日起 30 天內須申報，實價登錄2.0 預售屋規定）
-      const calcDeclDueDate = () => {
+      const updateDeclNotice = () => {
         if (!signDateInput.value) {
-          declDueDate.value = '';
+          declNoticeBox.style.display = 'none';
           return;
         }
         const d = new Date(signDateInput.value + 'T00:00:00');
-        d.setDate(d.getDate() + 30);
+        d.setDate(d.getDate() + 25);
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
-        declDueDate.value = `${y}-${m}-${day}`;
+        declNotifyDate.textContent = `${y}-${m}-${day}`;
+        declNoticeBox.style.display = 'block';
       };
-
-      // 控制序號欄位是否可填
-      const updateDeclSerialState = () => {
-        const canFill = !!signDateInput.value && !!declActualDate.value;
-        declSerial.disabled = !canFill;
-        declSerial.style.background = canFill ? '#f9fafb' : '#f3f4f6';
-        declSerial.style.cursor = canFill ? 'text' : 'not-allowed';
-        declSerialHint.style.display = canFill ? 'none' : 'block';
-        if (!canFill) declSerial.value = '';  // 條件不足時清空，避免殘留
-      };
-
-      const onSignDateChange = () => { calcDeclDueDate(); updateDeclSerialState(); };
-      signDateInput.addEventListener('input', onSignDateChange);
-      signDateInput.addEventListener('change', onSignDateChange);
-      declActualDate.addEventListener('input', updateDeclSerialState);
-      declActualDate.addEventListener('change', updateDeclSerialState);
-
-      // 開窗時先執行一次（處理已帶入的簽約日期）
-      calcDeclDueDate();
-      updateDeclSerialState();
+      signDateInput.addEventListener('input', updateDeclNotice);
+      signDateInput.addEventListener('change', updateDeclNotice);
+      updateDeclNotice();   // 開窗時處理已帶入的簽約日期
     }
 
     // A 棟：15 樓 × 4 戶；幾個範例標記

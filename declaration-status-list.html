@@ -36,7 +36,7 @@
     <main class="flex-1 p-6 overflow-x-hidden">
       <div class="mb-6">
         <h2 class="text-lg font-bold text-gray-700">銷控管理 / 實價登錄狀況表</h2>
-        <p class="text-xs text-gray-400 mt-1">彙整所有已成交戶的實價登錄申報進度；應登錄日＝簽約日 +30 天，狀態由系統依日期自動判定</p>
+        <p class="text-xs text-gray-400 mt-1">彙整所有已成交戶的實價登錄申報進度；應登錄日＝簽約日 +30 天（法定），系統於簽約 +25 天自動通知該建案業務與專案；實際登錄日期與序號由行政在本頁登錄</p>
       </div>
 
       <!-- 搜尋條件 -->
@@ -130,10 +130,12 @@
                 <th class="p-3 text-right font-medium whitespace-nowrap">成交價(萬)</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">業務員</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">簽約日期</th>
-                <th class="p-3 text-left font-medium whitespace-nowrap">應登錄日期</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">通知日(+25天)</th>
+                <th class="p-3 text-left font-medium whitespace-nowrap">應登錄日期(+30天)</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">實際登錄日期</th>
                 <th class="p-3 text-left font-medium whitespace-nowrap">實價登錄序號</th>
                 <th class="p-3 text-center font-medium whitespace-nowrap">登錄狀態</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">操作</th>
               </tr>
             </thead>
             <tbody id="tbody" class="divide-y"></tbody>
@@ -155,25 +157,29 @@
       { project:'畫世代', unit:'A棟-2-15F', cust:'陳太太', price:3000, sales:'徐X恩', signDate:'2026-04-08', actualDate:'2026-05-06', serial:'112A-預售-000123' },
       { project:'畫世代', unit:'A棟-1-10F', cust:'林先生', price:2800, sales:'王小明', signDate:'2026-05-20', actualDate:'2026-06-25', serial:'112A-預售-000188' },
       { project:'TheTop', unit:'B棟-1-8F',  cust:'黃小姐', price:3500, sales:'李美華', signDate:'2026-05-10', actualDate:'',           serial:'' },
-      { project:'新希望', unit:'A棟-3-12F', cust:'張先生', price:4200, sales:'徐X恩', signDate:'2026-06-25', actualDate:'',           serial:'' },
+      { project:'新理想', unit:'A棟-3-12F', cust:'張先生', price:4200, sales:'徐X恩', signDate:'2026-06-25', actualDate:'',           serial:'' },
       { project:'畫世代', unit:'B棟-2-5F',  cust:'吳太太', price:2600, sales:'王小明', signDate:'2026-06-30', actualDate:'',           serial:'' },
       { project:'TheTop', unit:'A棟-4-6F',  cust:'蔡先生', price:3100, sales:'李美華', signDate:'2026-06-01', actualDate:'2026-07-01', serial:'112T-預售-000210' },
-      { project:'新希望', unit:'C棟-2-3F',  cust:'鄭先生', price:2400, sales:'周大寶', signDate:'2026-05-25', actualDate:'',           serial:'' },
+      { project:'新理想', unit:'C棟-2-3F',  cust:'鄭先生', price:2400, sales:'周大寶', signDate:'2026-05-25', actualDate:'',           serial:'' },
     ];
 
     // 申報期限：簽約日 +30 天（實價登錄2.0 預售屋規定）
+    // 內部通知：簽約日 +25 天，系統自動通知該建案的業務與專案
     const DECLARE_DAYS = 30;
+    const NOTIFY_DAYS  = 25;
 
     const pad = n => String(n).padStart(2, '0');
     const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
-    // 由簽約日算應登錄日
-    function calcDueDate(signDate) {
-      if (!signDate) return '';
-      const d = new Date(signDate + 'T00:00:00');
-      d.setDate(d.getDate() + DECLARE_DAYS);
+    function addDays(dateStr, days) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() + days);
       return fmt(d);
     }
+    // 由簽約日算應登錄日／通知日
+    const calcDueDate    = signDate => addDays(signDate, DECLARE_DAYS);
+    const calcNotifyDate = signDate => addDays(signDate, NOTIFY_DAYS);
 
     // 判定登錄狀態
     // onTime 已登錄準時 / late 已登錄逾期 / overdue 未登錄已逾期 / pending 未登錄期限內
@@ -231,9 +237,13 @@
       const empty = document.getElementById('emptyHint');
       tbody.innerHTML = '';
 
+      const today = fmt(new Date());
       rows.forEach((d, i) => {
         const st = calcStatus(d);
         const meta = STATUS_META[st];
+        const notifyDate = calcNotifyDate(d.signDate);
+        // 通知日已到且尚未登錄 → 標示系統已發通知給業務與專案
+        const notified = notifyDate && today >= notifyDate && !d.actualDate;
         const tr = document.createElement('tr');
         tr.className = i % 2 ? 'bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50';
         tr.innerHTML = `
@@ -243,11 +253,15 @@
           <td class="p-3 align-top text-right whitespace-nowrap">${d.price.toLocaleString()}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.sales}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.signDate || '—'}</td>
+          <td class="p-3 align-top whitespace-nowrap">${notifyDate || '—'}${notified ? '<div class="text-[11px] text-blue-600 mt-0.5">已通知業務/專案</div>' : ''}</td>
           <td class="p-3 align-top whitespace-nowrap">${calcDueDate(d.signDate) || '—'}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.actualDate || '—'}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.serial || '—'}</td>
           <td class="p-3 align-top text-center whitespace-nowrap">
             <span class="inline-block px-2 py-1 rounded text-xs ${meta.cls}">${meta.text}</span>
+          </td>
+          <td class="p-3 align-top text-center whitespace-nowrap">
+            <button class="border ${d.actualDate ? 'border-gray-300 text-gray-600 hover:bg-gray-100' : 'border-sky-300 text-sky-600 hover:bg-sky-50'} px-3 py-1 rounded text-xs" onclick="openDeclModal(${DEALS.indexOf(d)})">${d.actualDate ? '修改登錄' : '登錄'}</button>
           </td>`;
         tbody.appendChild(tr);
       });
@@ -256,6 +270,62 @@
 
       // 查詢結果統計（依建案分組；以目前搜尋結果為基礎）
       renderStats(rows);
+    }
+
+    // ============================================================
+    // 行政登錄彈窗：填實際登錄日期＋實價登錄序號（寫入後狀態即時重判）
+    // ============================================================
+    function openDeclModal(idx) {
+      const old = document.getElementById('__declModal__');
+      if (old) old.remove();
+      const d = DEALS[idx];
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+
+      const modal = document.createElement('div');
+      modal.id = '__declModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">實價登錄</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${d.project}／${d.unit}／${d.cust}　應登錄期限：${calcDueDate(d.signDate)}</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實際登錄日期 <span style="color:#ef4444;">*</span></label>
+              <input id="__dcDate__" type="date" value="${d.actualDate || ''}" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">實價登錄序號 <span style="color:#ef4444;">*</span></label>
+              <input id="__dcSerial__" type="text" value="${d.serial || ''}" placeholder="例：112A-預售-000123" style="${inputStyle}">
+            </div>
+            <div id="__dcErr__" style="display:none;font-size:12px;color:#ef4444;"></div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__dcSaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">儲存</button>
+            <button id="__dcCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__dcCancelBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__dcSaveBtn__').onclick = () => {
+        const date   = modal.querySelector('#__dcDate__').value;
+        const serial = modal.querySelector('#__dcSerial__').value.trim();
+        const err    = modal.querySelector('#__dcErr__');
+        let msg = '';
+        if (!date) msg = '請選實際登錄日期';
+        else if (date < d.signDate) msg = '登錄日期不可早於簽約日期';
+        else if (!serial) msg = '請填實價登錄序號';
+        if (msg) { err.textContent = '※ ' + msg; err.style.display = 'block'; return; }
+
+        d.actualDate = date;
+        d.serial = serial;
+        close();
+        render();   // 狀態與統計即時重判
+      };
     }
 
     // 依建案分組的統計表
