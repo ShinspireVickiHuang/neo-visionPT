@@ -105,7 +105,11 @@
           '訂金':   { paidDate:'2026-06-01', paidAmt:900000,  method:'匯款', memo:'' },
           '簽約款': { paidDate:'2026-06-07', paidAmt:2100000, method:'匯款', memo:'' },
           '開工款': { paidDate:'2026-06-28', paidAmt:1500000, method:'支票', memo:'客戶出國延繳，主管同意' },
-        } },
+        },
+        // 已繳 3 期後加買車位：銷控加購時自動同步進繳款（source:'auto'），應繳日＝加購日+7天
+        extraStages:[
+          { stage:'車位加購款（B1-22）', type:'車位加購', dueDate:'2026-07-10', dueAmt:2600000, reason:'2026-07-03 銷控加購車位 B1-22', source:'auto' },
+        ] },
       { id:1035, project:'新理想', unit:'B1', owner:'vicki', signDate:'2026-06-01', memo:'', contractCode:'CT-2026-0601-B1', parkingNo:'B1-16', totalPrice:'28,500,000', housePrice:'26,000,000', unitPrice:'380,000', parkingPrice:'2,500,000',
         attachments:[
           { name:'房屋買賣合約書_B1.pdf', type:'合約', date:'2026-06-01', by:'王小明' },
@@ -113,7 +117,11 @@
         paidRecords:{
           '訂金':   { paidDate:'2026-06-01', paidAmt:855000, method:'現金', memo:'' },
           '簽約款': { paidDate:'',           paidAmt:500000, method:'匯款', memo:'部分繳，餘款約定 7/15 前補足' },
-        } },
+        },
+        // 客變追加：行政手動新增（source:'manual'），應繳日自訂（常跟工程節點綁）
+        extraStages:[
+          { stage:'客變追加款（廚具升級）', type:'客變追加', dueDate:'2026-08-15', dueAmt:180000, reason:'客戶變更廚具規格，追加工程款', source:'manual' },
+        ] },
       { id:1036, project:'新理想', unit:'C1', owner:'林先生', signDate:'2026-06-01', memo:'', contractCode:'', parkingNo:'', totalPrice:'26,000,000', housePrice:'26,000,000', unitPrice:'371,000', parkingPrice:'0', attachments:[], paidRecords:{} },
       { id:1037, project:'新理想', unit:'D1', owner:'張先生', signDate:'2026-06-15', memo:'', contractCode:'CT-2026-0615-D1', parkingNo:'B2-03', totalPrice:'27,800,000', housePrice:'25,300,000', unitPrice:'365,000', parkingPrice:'2,500,000', attachments:[], paidRecords:{} },
       { id:1038, project:'新理想', unit:'E1', owner:'吳太太', signDate:'2026-06-20', memo:'', contractCode:'CT-2026-0620-E1', parkingNo:'',      totalPrice:'31,200,000', housePrice:'31,200,000', unitPrice:'412,000', parkingPrice:'0', attachments:[], paidRecords:{} },
@@ -336,6 +344,7 @@
         return {
           stage: s.stage, pct: null, dueRule: s.reason || '單戶新增',
           dueDate: s.dueDate || '', dueAmt: s.dueAmt || 0, extra: true,
+          type: s.type || '其他', source: s.source || 'manual',
           paidDate: paid.paidDate || '', paidAmt: paid.paidAmt || 0,
           method: paid.method || '', memo: paid.memo || s.reason || '', proofs: paid.proofs || [],
         };
@@ -369,11 +378,16 @@
       const dueSum  = (pays || []).reduce((s, p) => s + (p.dueAmt || 0), 0);
       const remain  = dueSum - paidSum;
       const pct     = dueSum ? Math.round(paidSum / dueSum * 100) : 0;
+      // 應繳總額結構：原合約（範本展開）＋追加款（車位加購/客變等）
+      const baseSum  = (pays || []).filter(p => !p.extra).reduce((s, p) => s + p.dueAmt, 0);
+      const extras   = (pays || []).filter(p => p.extra);
+      const extraSum = extras.reduce((s, p) => s + p.dueAmt, 0);
 
-      const statCard = (label, val, color) => `
+      const statCard = (label, val, color, sub) => `
         <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 16px;">
           <div style="font-size:12px;color:#9ca3af;">${label}</div>
           <div style="font-size:18px;font-weight:bold;color:${color};margin-top:2px;">${val}</div>
+          ${sub ? `<div style="font-size:11px;color:#6b7280;margin-top:3px;">${sub}</div>` : ''}
         </div>`;
 
       const payRows = noTpl
@@ -382,7 +396,7 @@
         const st = PAY_STATUS[paymentStatus(p)];
         return `
         <tr style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
-          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;font-weight:500;">${p.stage}${p.extra ? ' <span style="font-size:11px;background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;padding:1px 6px;border-radius:4px;">單戶新增</span>' : ''}</td>
+          <td style="padding:10px 12px;font-size:13px;white-space:nowrap;font-weight:500;">${p.stage}${p.extra ? ` <span style="font-size:11px;${p.type === '車位加購' ? 'background:#ccfbf1;color:#0f766e;border:1px solid #5eead4;' : p.type === '客變追加' ? 'background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;' : 'background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db;'}padding:1px 6px;border-radius:4px;">${p.type}</span>${p.source === 'auto' ? '<div style="font-size:11px;color:#0f766e;font-weight:normal;margin-top:2px;">銷控自動同步</div>' : ''}` : ''}</td>
           <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;color:#6b7280;">${p.pct !== null ? p.pct + '%' : '—'}</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.dueDate || (p.dueRule && !p.extra ? '<span style="color:#9ca3af;">' + p.dueRule + '</span>' : '—')}</td>
           <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;">${fmtAmt(p.dueAmt)}</td>
@@ -409,7 +423,7 @@
 
           <!-- 繳款摘要 -->
           <div style="display:flex;gap:12px;margin:18px 24px 0;">
-            ${statCard('應繳總額', fmtAmt(dueSum), '#1f2937')}
+            ${statCard('應繳總額', fmtAmt(dueSum), '#1f2937', extras.length ? `原合約 ${fmtAmt(baseSum)}＋追加 ${extras.length} 筆 ${fmtAmt(extraSum)}` : '')}
             ${statCard('已繳金額', fmtAmt(paidSum), '#047857')}
             ${statCard('未繳金額', fmtAmt(remain), remain > 0 ? '#b91c1c' : '#047857')}
             ${statCard('繳款進度', pct + '%', '#1f2937')}
@@ -420,7 +434,7 @@
             <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
               <div>
                 <span style="font-weight:bold;color:#374151;font-size:14px;">期別款項明細</span>
-                <span style="font-size:12px;color:#9ca3af;margin-left:8px;">期別依套用範本自動展開，應繳金額＝合約總價 × 比例</span>
+                <span style="font-size:12px;color:#9ca3af;margin-left:8px;">期別依套用範本自動展開（應繳＝原合約總價 × 比例）；車位加購由銷控自動同步，客變追加以「新增期款」登錄</span>
               </div>
               <button onclick="openExtraStageModal(${h.id})" style="background:#a09080;color:#fff;border:0;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">＋ 新增期款</button>
             </div>
@@ -478,8 +492,18 @@
           </div>
           <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
             <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">款項類型 <span style="color:#ef4444;">*</span></label>
+              <select id="__exType__" style="${inputStyle}">
+                <option value="">請選擇</option>
+                <option>客變追加</option>
+                <option>車位加購</option>
+                <option>其他</option>
+              </select>
+              <div style="font-size:12px;color:#9ca3af;margin-top:4px;">※ 車位加購通常由銷控加購時自動同步，此處僅供補登</div>
+            </div>
+            <div>
               <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">期款名稱 <span style="color:#ef4444;">*</span></label>
-              <input id="__exStage__" type="text" placeholder="例：變更追加款、車位加購款" style="${inputStyle}">
+              <input id="__exStage__" type="text" placeholder="例：客變追加款（廚具升級）" style="${inputStyle}">
             </div>
             <div>
               <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">應繳日期 <span style="color:#ef4444;">*</span></label>
@@ -506,22 +530,24 @@
       modal.querySelector('#__exCancelBtn__').onclick = close;
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
       modal.querySelector('#__exSaveBtn__').onclick = () => {
+        const type   = modal.querySelector('#__exType__').value;
         const stage  = modal.querySelector('#__exStage__').value.trim();
         const date   = modal.querySelector('#__exDate__').value;
         const amt    = Number(modal.querySelector('#__exAmt__').value);
         const reason = modal.querySelector('#__exReason__').value.trim();
         const err    = modal.querySelector('#__exErr__');
-        // 驗證：名稱／日期／金額／事由必填，名稱不可與既有期別重複
+        // 驗證：類型／名稱／日期／金額／事由必填，名稱不可與既有期別重複
         const exists = (expandPayments(h) || []).some(p => p.stage === stage);
         let msg = '';
-        if (!stage) msg = '請填期款名稱';
+        if (!type) msg = '請選款項類型';
+        else if (!stage) msg = '請填期款名稱';
         else if (exists) msg = '期款名稱與既有期別重複，請換一個名稱';
         else if (!date) msg = '請選應繳日期';
         else if (!amt || amt <= 0) msg = '應繳金額須大於 0';
         else if (!reason) msg = '請填寫事由';
         if (msg) { err.textContent = '※ ' + msg; err.style.display = 'block'; return; }
 
-        (h.extraStages ||= []).push({ stage, dueDate: date, dueAmt: amt, reason });
+        (h.extraStages ||= []).push({ stage, type, dueDate: date, dueAmt: amt, reason, source: 'manual' });
         close();
         openPaymentModal(id);   // 重開戶別款項，立即看到新期款與重算後的摘要
       };
