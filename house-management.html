@@ -390,12 +390,23 @@
           ${sub ? `<div style="font-size:11px;color:#6b7280;margin-top:3px;">${sub}</div>` : ''}
         </div>`;
 
-      const payRows = noTpl
-        ? '<tr><td colspan="10" style="padding:16px;text-align:center;color:#ef4444;font-size:13px;">此建案尚未套用期別範本，請先到 <a href="payment-schedule-management.html" style="color:#2563eb;text-decoration:underline;">繳款期別管理</a> 套用</td></tr>'
-        : pays.map((p, i) => {
+      // 期別排序：預設照範本＋追加順序；已儲存過自訂順序（h.stageOrder）則優先套用
+      const sortByOrder = (list, order) => {
+        if (!order || !order.length) return list;
+        return [...list].sort((a, b) => {
+          const ia = order.indexOf(a.stage), ib = order.indexOf(b.stage);
+          return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);   // 不在順序表的排最後
+        });
+      };
+      let draftOrder = noTpl ? [] : sortByOrder(pays, h.stageOrder).map(p => p.stage);
+      let orderDirty = false;   // 拖拉後尚未儲存
+
+      // 單列 HTML（含拖曳把手欄）
+      const rowHtml = (p, i) => {
         const st = PAY_STATUS[paymentStatus(p)];
         return `
-        <tr style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
+        <tr draggable="true" data-stage="${p.stage}" style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
+          <td style="padding:10px 8px;text-align:center;cursor:grab;color:#9ca3af;font-size:14px;user-select:none;" title="拖拉調整順序">⠿</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;font-weight:500;">${p.stage}${p.extra ? ` <span style="font-size:11px;${p.type === '車位加購' ? 'background:#ccfbf1;color:#0f766e;border:1px solid #5eead4;' : p.type === '客變追加' ? 'background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;' : 'background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db;'}padding:1px 6px;border-radius:4px;">${p.type}</span>${p.source === 'auto' ? '<div style="font-size:11px;color:#0f766e;font-weight:normal;margin-top:2px;">銷控自動同步</div>' : ''}` : ''}</td>
           <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;color:#6b7280;">${p.pct !== null ? p.pct + '%' : '—'}</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.dueDate || (p.dueRule && !p.extra ? '<span style="color:#9ca3af;">' + p.dueRule + '</span>' : '—')}</td>
@@ -407,9 +418,14 @@
           <td style="padding:10px 12px;font-size:12px;color:#6b7280;max-width:160px;">${p.memo || ''}${(p.proofs || []).map(f => `<div style="white-space:nowrap;margin-top:3px;"><a href="#" onclick="alert('下載繳款證明（範例）：${f}');return false;" style="color:#2563eb;text-decoration:none;">📎 ${f}</a></div>`).join('')}</td>
           <td style="padding:10px 12px;white-space:nowrap;">
             ${paymentStatus(p) !== 'paid' ? `<button onclick="openPayRecordModal(${h.id}, '${p.stage}')" style="border:0;background:#a09080;color:#fff;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">登錄繳款</button>` : ''}
+            ${p.extra && p.source !== 'auto' ? `<button onclick="deleteExtraStage(${h.id}, '${p.stage}')" title="刪除此手動新增的期款" style="border:1px solid #fca5a5;background:#fff;color:#ef4444;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:4px;">刪除</button>` : ''}
           </td>
         </tr>`;
-      }).join('');
+      };
+
+      const payRows = noTpl
+        ? '<tr><td colspan="11" style="padding:16px;text-align:center;color:#ef4444;font-size:13px;">此建案尚未套用期別範本，請先到 <a href="payment-schedule-management.html" style="color:#2563eb;text-decoration:underline;">繳款期別管理</a> 套用</td></tr>'
+        : draftOrder.map((name, i) => rowHtml(pays.find(p => p.stage === name), i)).join('');
 
       const modal = document.createElement('div');
       modal.id = '__payModal__';
@@ -442,6 +458,7 @@
               <table style="width:100%;border-collapse:collapse;">
                 <thead>
                   <tr style="background:#f3f4f6;">
+                    <th style="padding:10px 8px;width:28px;"></th>
                     <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">期別</th>
                     <th style="padding:10px 12px;text-align:right;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">比例</th>
                     <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">應繳日期／時點</th>
@@ -454,21 +471,83 @@
                     <th style="padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;font-weight:500;white-space:nowrap;">操作</th>
                   </tr>
                 </thead>
-                <tbody>${payRows}</tbody>
+                <tbody id="__payTbody__">${payRows}</tbody>
               </table>
             </div>
           </div>
 
-          <div style="padding:14px 24px 20px;display:flex;justify-content:center;border-top:1px solid #e5e7eb;background:#fafafa;">
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;align-items:center;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <span id="__orderHint__" style="display:none;font-size:12px;color:#d97706;">※ 順序已調整，尚未儲存</span>
+            <button id="__paySaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">儲存</button>
             <button id="__payDoneBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">關閉</button>
           </div>
         </div>`;
 
       document.body.appendChild(modal);
-      const close = () => modal.remove();
+
+      // ── 拖拉排序：拖動列到目標列上放開即插入該位置；儲存前僅為草稿 ──
+      const tbody = modal.querySelector('#__payTbody__');
+      const hint  = modal.querySelector('#__orderHint__');
+      const redrawRows = () => {
+        tbody.innerHTML = draftOrder.map((name, i) => rowHtml(pays.find(p => p.stage === name), i)).join('');
+      };
+      if (!noTpl) {
+        let dragStage = null;
+        tbody.addEventListener('dragstart', e => {
+          const tr = e.target.closest('tr');
+          if (!tr) return;
+          dragStage = tr.dataset.stage;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        tbody.addEventListener('dragover', e => e.preventDefault());
+        tbody.addEventListener('drop', e => {
+          e.preventDefault();
+          const tr = e.target.closest('tr');
+          if (!tr || !dragStage || tr.dataset.stage === dragStage) return;
+          const from = draftOrder.indexOf(dragStage);
+          const to   = draftOrder.indexOf(tr.dataset.stage);
+          draftOrder.splice(from, 1);
+          draftOrder.splice(to, 0, dragStage);
+          orderDirty = true;
+          hint.style.display = 'inline';
+          redrawRows();
+          dragStage = null;
+        });
+      }
+
+      const close = () => {
+        if (orderDirty && !confirm('期別順序已調整但尚未儲存，確定要放棄變更嗎？')) return;
+        modal.remove();
+      };
       modal.querySelector('#__payCloseBtn__').onclick = close;
       modal.querySelector('#__payDoneBtn__').onclick = close;
+      modal.querySelector('#__paySaveBtn__').onclick = () => {
+        h.stageOrder = [...draftOrder];   // 寫入自訂順序（正式版呼叫 API 儲存）
+        orderDirty = false;
+        hint.style.display = 'none';
+        alert('已儲存（範例）：期別順序與款項設定已更新');
+      };
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    }
+
+    // ============================================================
+    // 刪除手動新增的期款（僅限 source:'manual'；範本期別與銷控同步款不可刪）
+    // 已有繳款紀錄的期款需強確認，連同繳款紀錄一併刪除
+    // ============================================================
+    function deleteExtraStage(id, stage) {
+      const h = HOUSES.find(x => x.id === id);
+      const idx = (h.extraStages || []).findIndex(s => s.stage === stage && s.source !== 'auto');
+      if (idx === -1) return;
+      const paid = (h.paidRecords || {})[stage];
+      const hasPaid = paid && paid.paidAmt > 0;
+      const msg = hasPaid
+        ? `「${stage}」已有繳款紀錄（實繳 ${fmtAmt(paid.paidAmt)} 元）！\n刪除將連同繳款紀錄一併移除，確定要刪除嗎？`
+        : `確定要刪除期款「${stage}」嗎？`;
+      if (!confirm(msg)) return;
+      h.extraStages.splice(idx, 1);
+      if (h.paidRecords) delete h.paidRecords[stage];
+      if (h.stageOrder) h.stageOrder = h.stageOrder.filter(n => n !== stage);
+      openPaymentModal(id);   // 重開戶別款項，摘要與明細即時重算
     }
 
     // ============================================================
