@@ -153,14 +153,15 @@
     // 範例成交戶資料（之後改為從 API 帶入）
     // 只存原始欄位；應登錄日期與登錄狀態由程式自動計算
     // ============================================================
+    // sales＝負責業務、pm＝建案專案負責人（通知對象）；notifyLog＝手動通知紀錄
     const DEALS = [
-      { project:'畫世代', unit:'A棟-2-15F', cust:'陳太太', price:3000, sales:'徐X恩', signDate:'2026-04-08', actualDate:'2026-05-06', serial:'112A-預售-000123' },
-      { project:'畫世代', unit:'A棟-1-10F', cust:'林先生', price:2800, sales:'王小明', signDate:'2026-05-20', actualDate:'2026-06-25', serial:'112A-預售-000188' },
-      { project:'TheTop', unit:'B棟-1-8F',  cust:'黃小姐', price:3500, sales:'李美華', signDate:'2026-05-10', actualDate:'',           serial:'' },
-      { project:'新理想', unit:'A棟-3-12F', cust:'張先生', price:4200, sales:'徐X恩', signDate:'2026-06-25', actualDate:'',           serial:'' },
-      { project:'畫世代', unit:'B棟-2-5F',  cust:'吳太太', price:2600, sales:'王小明', signDate:'2026-06-30', actualDate:'',           serial:'' },
-      { project:'TheTop', unit:'A棟-4-6F',  cust:'蔡先生', price:3100, sales:'李美華', signDate:'2026-06-01', actualDate:'2026-07-01', serial:'112T-預售-000210' },
-      { project:'新理想', unit:'C棟-2-3F',  cust:'鄭先生', price:2400, sales:'周大寶', signDate:'2026-05-25', actualDate:'',           serial:'' },
+      { project:'畫世代', unit:'A棟-2-15F', cust:'陳太太', price:3000, sales:'徐X恩', pm:'林專案', signDate:'2026-04-08', actualDate:'2026-05-06', serial:'112A-預售-000123', notifyLog:[] },
+      { project:'畫世代', unit:'A棟-1-10F', cust:'林先生', price:2800, sales:'王小明', pm:'林專案', signDate:'2026-05-20', actualDate:'2026-06-25', serial:'112A-預售-000188', notifyLog:[] },
+      { project:'TheTop', unit:'B棟-1-8F',  cust:'黃小姐', price:3500, sales:'李美華', pm:'陳專案', signDate:'2026-05-10', actualDate:'',           serial:'', notifyLog:[] },
+      { project:'新理想', unit:'A棟-3-12F', cust:'張先生', price:4200, sales:'徐X恩', pm:'黃專案', signDate:'2026-06-25', actualDate:'',           serial:'', notifyLog:[] },
+      { project:'畫世代', unit:'B棟-2-5F',  cust:'吳太太', price:2600, sales:'王小明', pm:'林專案', signDate:'2026-06-30', actualDate:'',           serial:'', notifyLog:[] },
+      { project:'TheTop', unit:'A棟-4-6F',  cust:'蔡先生', price:3100, sales:'李美華', pm:'陳專案', signDate:'2026-06-01', actualDate:'2026-07-01', serial:'112T-預售-000210', notifyLog:[] },
+      { project:'新理想', unit:'C棟-2-3F',  cust:'鄭先生', price:2400, sales:'周大寶', pm:'黃專案', signDate:'2026-05-25', actualDate:'',           serial:'', notifyLog:[] },
     ];
 
     // 申報期限：簽約日 +30 天（實價登錄2.0 預售屋規定）
@@ -253,7 +254,7 @@
           <td class="p-3 align-top text-right whitespace-nowrap">${d.price.toLocaleString()}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.sales}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.signDate || '—'}</td>
-          <td class="p-3 align-top whitespace-nowrap">${notifyDate || '—'}${notified ? '<div class="text-[11px] text-blue-600 mt-0.5">已通知業務/專案</div>' : ''}</td>
+          <td class="p-3 align-top whitespace-nowrap">${notifyDate || '—'}${notified ? '<div class="text-[11px] text-blue-600 mt-0.5">已自動通知業務/專案</div>' : ''}${(d.notifyLog || []).length ? `<div class="text-[11px] text-purple-600 mt-0.5">手動通知 ${d.notifyLog.length} 次（最後 ${d.notifyLog[d.notifyLog.length-1].date}）</div>` : ''}</td>
           <td class="p-3 align-top whitespace-nowrap">${calcDueDate(d.signDate) || '—'}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.actualDate || '—'}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.serial || '—'}</td>
@@ -261,7 +262,10 @@
             <span class="inline-block px-2 py-1 rounded text-xs ${meta.cls}">${meta.text}</span>
           </td>
           <td class="p-3 align-top text-center whitespace-nowrap">
-            <button class="border ${d.actualDate ? 'border-gray-300 text-gray-600 hover:bg-gray-100' : 'border-sky-300 text-sky-600 hover:bg-sky-50'} px-3 py-1 rounded text-xs" onclick="openDeclModal(${DEALS.indexOf(d)})">${d.actualDate ? '修改登錄' : '登錄'}</button>
+            <div class="flex gap-1 justify-center">
+              <button class="border ${d.actualDate ? 'border-gray-300 text-gray-600 hover:bg-gray-100' : 'border-sky-300 text-sky-600 hover:bg-sky-50'} px-3 py-1 rounded text-xs" onclick="openDeclModal(${DEALS.indexOf(d)})">${d.actualDate ? '修改登錄' : '登錄'}</button>
+              ${!d.actualDate ? `<button class="border border-purple-300 text-purple-600 hover:bg-purple-50 px-3 py-1 rounded text-xs" onclick="openNotifyModal(${DEALS.indexOf(d)})">通知</button>` : ''}
+            </div>
           </td>`;
         tbody.appendChild(tr);
       });
@@ -270,6 +274,71 @@
 
       // 查詢結果統計（依建案分組；以目前搜尋結果為基礎）
       renderStats(rows);
+    }
+
+    // ============================================================
+    // 手動通知彈窗：不等 +25 天排程，隨時可再催辦
+    // 通知對象＝該戶業務＋建案專案，可勾選並附訊息；紀錄留存於通知日欄
+    // ============================================================
+    function openNotifyModal(idx) {
+      const old = document.getElementById('__ntfModal__');
+      if (old) old.remove();
+      const d = DEALS[idx];
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+      const dueDate = calcDueDate(d.signDate);
+      const overdue = fmt(new Date()) > dueDate;
+
+      const modal = document.createElement('div');
+      modal.id = '__ntfModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:480px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">手動通知</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${d.project}／${d.unit}／${d.cust}　應登錄期限：${dueDate}${overdue ? '<span style="color:#ef4444;">（已逾期）</span>' : ''}</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:6px;">通知對象 <span style="color:#ef4444;">*</span></label>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:9px 12px;border:1px solid #e5e7eb;border-radius:6px;">
+                  <input type="checkbox" class="__ntfTarget__" value="業務 ${d.sales}" checked> 業務：${d.sales}
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:9px 12px;border:1px solid #e5e7eb;border-radius:6px;">
+                  <input type="checkbox" class="__ntfTarget__" value="專案 ${d.pm}" checked> 專案：${d.pm}
+                </label>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">通知訊息</label>
+              <textarea id="__ntfMsg__" rows="3" style="${inputStyle};resize:vertical;font-family:inherit;">提醒：${d.project}／${d.unit} 實價登錄期限為 ${dueDate}，請儘速提供申報資料並完成登錄。</textarea>
+            </div>
+            <div id="__ntfErr__" style="display:none;font-size:12px;color:#ef4444;"></div>
+            ${(d.notifyLog || []).length ? `
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;">
+              <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">通知紀錄</div>
+              ${d.notifyLog.map(n => `<div style="font-size:12px;color:#4b5563;line-height:1.7;">${n.date}　→ ${n.targets.join('、')}</div>`).join('')}
+            </div>` : ''}
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__ntfSendBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">發送通知</button>
+            <button id="__ntfCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__ntfCancelBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__ntfSendBtn__').onclick = () => {
+        const targets = [...modal.querySelectorAll('.__ntfTarget__:checked')].map(cb => cb.value);
+        const err = modal.querySelector('#__ntfErr__');
+        if (!targets.length) { err.textContent = '※ 請至少勾選一個通知對象'; err.style.display = 'block'; return; }
+        (d.notifyLog ||= []).push({ date: fmt(new Date()), targets, msg: modal.querySelector('#__ntfMsg__').value.trim() });
+        close();
+        render();   // 通知紀錄即時顯示在通知日欄
+        alert(`已發送通知給：${targets.join('、')}（範例，正式版將發送系統訊息／Email）`);
+      };
     }
 
     // ============================================================
