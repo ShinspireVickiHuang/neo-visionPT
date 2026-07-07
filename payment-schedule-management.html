@@ -127,6 +127,13 @@
     // 某範本已套用的建案清單
     const appliedProjects = tplId => PROJECTS.filter(p => p.appliedTpl === tplId);
 
+    // 範本卡展開狀態（預設全部收合，點標題列展開；搜尋重繪時保留）
+    const expandedTpls = new Set();
+    function toggleTpl(id) {
+      expandedTpls.has(id) ? expandedTpls.delete(id) : expandedTpls.add(id);
+      render();
+    }
+
     function render() {
       const kw = document.getElementById('fName').value.trim();
       const pj = document.getElementById('fProject').value.trim();
@@ -161,18 +168,21 @@
             <td class="p-2.5 text-sm text-gray-600">${s.dueRule}</td>
           </tr>`).join('');
 
+        const expanded = expandedTpls.has(t.id);
         const card = document.createElement('div');
         card.className = 'bg-white rounded shadow-sm p-6';
         card.innerHTML = `
-          <div class="flex items-start justify-between mb-3">
-            <div>
+          <div class="flex items-start justify-between ${expanded ? 'mb-3' : ''}">
+            <div class="cursor-pointer flex-1" onclick="toggleTpl(${t.id})" title="${expanded ? '點擊收合' : '點擊展開期別明細'}">
               <div class="flex items-center gap-3">
+                <i data-lucide="${expanded ? 'chevron-down' : 'chevron-right'}" class="w-4 h-4 text-gray-400 flex-shrink-0"></i>
                 <h3 class="text-base font-bold text-gray-700">${t.name}</h3>
+                <span class="text-xs text-gray-400">${t.stages.length} 期</span>
                 <span class="text-xs ${totalPct === 100 ? 'text-green-600' : 'text-red-500 font-bold'}">合計 ${totalPct}%${totalPct !== 100 ? '（未達 100%，請檢查）' : ''}</span>
               </div>
-              <div class="mt-2 text-xs text-gray-500">
+              <div class="mt-2 text-xs text-gray-500 pl-7">
                 已套用 <b class="text-gray-800">${appliedCount}</b> 個建案
-                ${appliedCount ? `<a href="#" class="text-blue-600 hover:underline ml-1" onclick="openAppliedModal(${t.id});return false;">查看清單</a>` : ''}
+                ${appliedCount ? `<a href="#" class="text-blue-600 hover:underline ml-1" onclick="event.stopPropagation();openAppliedModal(${t.id});return false;">查看清單</a>` : ''}
               </div>
             </div>
             <div class="flex gap-2 flex-shrink-0">
@@ -181,6 +191,7 @@
               <button class="bg-[#a09080] hover:bg-[#8d7d70] text-white px-3 py-1.5 rounded text-xs flex items-center gap-1" onclick="openApplyModal(${t.id})"><i data-lucide="building-2" class="w-3 h-3"></i> 套用到建案</button>
             </div>
           </div>
+          ${expanded ? `
           <div class="overflow-x-auto border rounded">
             <table class="w-full border-collapse">
               <thead>
@@ -193,7 +204,7 @@
               </thead>
               <tbody class="divide-y">${stageRows}</tbody>
             </table>
-          </div>`;
+          </div>` : ''}`;
         list.appendChild(card);
       });
       lucide.createIcons();
