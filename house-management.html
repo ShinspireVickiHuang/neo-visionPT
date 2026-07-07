@@ -328,13 +328,15 @@
       let allocated = 0;
       const fromTpl = tpl.stages.map((s, i) => {
         const isLast = i === tpl.stages.length - 1;
-        const dueAmt = isLast ? total - allocated : Math.round(total * s.pct / 100);
-        allocated += dueAmt;
+        const defAmt = isLast ? total - allocated : Math.round(total * s.pct / 100);
+        allocated += defAmt;   // 尾差以範本預設值計，覆寫金額不影響其他期的預設拆分
+        const override = (h.amountOverrides || {})[s.stage];
         const paid = (h.paidRecords || {})[s.stage] || {};
         return {
           stage: s.stage, pct: s.pct, dueRule: s.dueRule,
           dueDate: calcDueDate(s.dueRule, h.signDate),
-          dueAmt, extra: false,
+          dueAmt: override != null ? override : defAmt,
+          overridden: override != null, extra: false,
           paidDate: paid.paidDate || '', paidAmt: paid.paidAmt || 0,
           method: paid.method || '', memo: paid.memo || '', proofs: paid.proofs || [],
         };
@@ -400,6 +402,10 @@
       };
       let draftOrder = noTpl ? [] : sortByOrder(pays, h.stageOrder).map(p => p.stage);
       let orderDirty = false;   // 拖拉後尚未儲存
+      // 應繳金額草稿（含範本期別與追加期款），儲存時統一驗證帳目平衡
+      const draftAmounts = {};
+      (pays || []).forEach(p => { draftAmounts[p.stage] = p.dueAmt; });
+      const contractTotal = Number(String(h.totalPrice).replace(/,/g, '')) || 0;   // 對帳錨點：原合約總價（銷控）
 
       // 單列 HTML（含拖曳把手欄）
       const rowHtml = (p, i) => {
@@ -408,9 +414,11 @@
         <tr draggable="true" data-stage="${p.stage}" style="border-bottom:1px solid #f3f4f6;${i % 2 ? 'background:#f9fafb;' : ''}">
           <td style="padding:10px 8px;text-align:center;cursor:grab;color:#9ca3af;font-size:14px;user-select:none;" title="拖拉調整順序">⠿</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;font-weight:500;">${p.stage}${p.extra ? ` <span style="font-size:11px;${p.type === '車位加購' ? 'background:#ccfbf1;color:#0f766e;border:1px solid #5eead4;' : p.type === '客變追加' ? 'background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;' : 'background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db;'}padding:1px 6px;border-radius:4px;">${p.type}</span>${p.source === 'auto' ? '<div style="font-size:11px;color:#0f766e;font-weight:normal;margin-top:2px;">銷控自動同步</div>' : ''}` : ''}</td>
-          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;color:#6b7280;">${p.pct !== null ? p.pct + '%' : '—'}</td>
+          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;color:#6b7280;">${p.pct !== null ? p.pct + '%' + (draftAmounts[p.stage] !== undefined && p.overridden ? '<div style="font-size:11px;color:#d97706;">已調整</div>' : '') : '—'}</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.dueDate || (p.dueRule && !p.extra ? '<span style="color:#9ca3af;">' + p.dueRule + '</span>' : '—')}</td>
-          <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;">${fmtAmt(p.dueAmt)}</td>
+          <td style="padding:10px 12px;white-space:nowrap;text-align:right;">
+            <input type="number" class="__amtInput__" data-stage="${p.stage}" value="${draftAmounts[p.stage]}" min="0" title="可調整應繳金額，儲存時檢查加總須等於應繳總額" style="width:120px;text-align:right;border:1px solid #d1d5db;border-radius:4px;padding:5px 8px;font-size:13px;background:#fff;">
+          </td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.paidDate || '—'}</td>
           <td style="padding:10px 12px;font-size:13px;text-align:right;white-space:nowrap;">${fmtAmt(p.paidAmt)}</td>
           <td style="padding:10px 12px;font-size:13px;white-space:nowrap;">${p.method || '—'}</td>
@@ -474,6 +482,8 @@
                 <tbody id="__payTbody__">${payRows}</tbody>
               </table>
             </div>
+            <!-- 對帳平衡列：原合約期別加總必須等於原合約總價 -->
+            <div id="__balanceBar__" style="padding:10px 16px;border-top:1px solid #e5e7eb;background:#f9fafb;font-size:13px;"></div>
           </div>
 
           <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;align-items:center;border-top:1px solid #e5e7eb;background:#fafafa;">
@@ -491,6 +501,35 @@
       const redrawRows = () => {
         tbody.innerHTML = draftOrder.map((name, i) => rowHtml(pays.find(p => p.stage === name), i)).join('');
       };
+
+      // ── 對帳平衡列：即時檢查「原合約期別加總 vs 原合約總價」──
+      const balanceBar = modal.querySelector('#__balanceBar__');
+      const calcBalance = () => {
+        const baseDraft  = (pays || []).filter(p => !p.extra).reduce((s, p) => s + (draftAmounts[p.stage] || 0), 0);
+        const extraDraft = (pays || []).filter(p => p.extra).reduce((s, p) => s + (draftAmounts[p.stage] || 0), 0);
+        return { baseDraft, extraDraft, diff: baseDraft - contractTotal };
+      };
+      const updateBalanceBar = () => {
+        if (noTpl) { balanceBar.style.display = 'none'; return; }
+        const { baseDraft, extraDraft, diff } = calcBalance();
+        const ok = diff === 0;
+        balanceBar.innerHTML = `
+          <span style="color:${ok ? '#047857' : '#b91c1c'};font-weight:${ok ? 'normal' : 'bold'};">
+            ${ok ? '✓' : '✗'} 原合約期別加總 ${fmtAmt(baseDraft)}／原合約總價 ${fmtAmt(contractTotal)}
+            ${ok ? '（帳目平衡）' : `（${diff > 0 ? '超出' : '不足'} ${fmtAmt(Math.abs(diff))}，儲存前必須調整至相等）`}
+          </span>
+          <span style="color:#6b7280;margin-left:14px;">追加款合計 ${fmtAmt(extraDraft)}　應繳總額 ${fmtAmt(baseDraft + extraDraft)}</span>`;
+      };
+      updateBalanceBar();
+
+      // 金額輸入：更新草稿並即時重算平衡列
+      tbody.addEventListener('input', e => {
+        if (!e.target.classList.contains('__amtInput__')) return;
+        draftAmounts[e.target.dataset.stage] = Number(e.target.value) || 0;
+        orderDirty = true;
+        hint.style.display = 'inline';
+        updateBalanceBar();
+      });
       if (!noTpl) {
         let dragStage = null;
         tbody.addEventListener('dragstart', e => {
@@ -522,10 +561,35 @@
       modal.querySelector('#__payCloseBtn__').onclick = close;
       modal.querySelector('#__payDoneBtn__').onclick = close;
       modal.querySelector('#__paySaveBtn__').onclick = () => {
+        if (!noTpl) {
+          // 防呆 1：原合約期別加總必須等於原合約總價（錨點來自銷控，不可不平）
+          const { diff } = calcBalance();
+          if (diff !== 0) {
+            alert(`無法儲存：原合約期別加總${diff > 0 ? '超出' : '不足'}原合約總價 ${fmtAmt(Math.abs(diff))} 元。\n請調整各期應繳金額，加總須等於 ${fmtAmt(contractTotal)} 元。`);
+            return;
+          }
+          // 防呆 2：任何期別的應繳金額不可低於已繳實繳金額
+          const under = (pays || []).find(p => (draftAmounts[p.stage] || 0) < (p.paidAmt || 0));
+          if (under) {
+            alert(`無法儲存：「${under.stage}」應繳金額 ${fmtAmt(draftAmounts[under.stage])} 低於已繳的 ${fmtAmt(under.paidAmt)} 元。`);
+            return;
+          }
+          // 寫入金額調整：範本期別存覆寫值、追加期款直接更新
+          (pays || []).forEach(p => {
+            if (p.extra) {
+              const s = (h.extraStages || []).find(x => x.stage === p.stage);
+              if (s) s.dueAmt = draftAmounts[p.stage];
+            } else {
+              if (draftAmounts[p.stage] !== p.dueAmt || p.overridden) {
+                (h.amountOverrides ||= {})[p.stage] = draftAmounts[p.stage];
+              }
+            }
+          });
+        }
         h.stageOrder = [...draftOrder];   // 寫入自訂順序（正式版呼叫 API 儲存）
         orderDirty = false;
         hint.style.display = 'none';
-        alert('已儲存（範例）：期別順序與款項設定已更新');
+        alert('已儲存（範例）：期別順序與應繳金額已更新');
       };
       modal.addEventListener('click', e => { if (e.target === modal) close(); });
     }
@@ -538,11 +602,19 @@
       const h = HOUSES.find(x => x.id === id);
       const idx = (h.extraStages || []).findIndex(s => s.stage === stage && s.source !== 'auto');
       if (idx === -1) return;
+      const target = h.extraStages[idx];
       const paid = (h.paidRecords || {})[stage];
       const hasPaid = paid && paid.paidAmt > 0;
+
+      // 防呆：刪除前試算帳目變化，讓使用者確認刪除後加總仍等於應繳總額
+      const pays = expandPayments(h) || [];
+      const dueSumNow   = pays.reduce((s, p) => s + p.dueAmt, 0);
+      const dueSumAfter = dueSumNow - (target.dueAmt || 0);
+      const balanceInfo = `\n\n【對帳確認】\n應繳總額：${fmtAmt(dueSumNow)} → ${fmtAmt(dueSumAfter)} 元（減少 ${fmtAmt(target.dueAmt)}）\n原合約總價 ${fmtAmt(Number(String(h.totalPrice).replace(/,/g, '')) || 0)} 元不受影響，刪除後各期加總仍與應繳總額相符。`;
+
       const msg = hasPaid
-        ? `「${stage}」已有繳款紀錄（實繳 ${fmtAmt(paid.paidAmt)} 元）！\n刪除將連同繳款紀錄一併移除，確定要刪除嗎？`
-        : `確定要刪除期款「${stage}」嗎？`;
+        ? `「${stage}」已有繳款紀錄（實繳 ${fmtAmt(paid.paidAmt)} 元）！\n刪除將連同繳款紀錄一併移除。${balanceInfo}\n\n確定要刪除嗎？`
+        : `確定要刪除期款「${stage}」嗎？${balanceInfo}`;
       if (!confirm(msg)) return;
       h.extraStages.splice(idx, 1);
       if (h.paidRecords) delete h.paidRecords[stage];
