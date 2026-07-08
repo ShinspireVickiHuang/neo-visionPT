@@ -74,6 +74,7 @@
               <option value="late">已登錄（逾期）</option>
               <option value="overdue">未登錄・已逾期</option>
               <option value="pending">未登錄・期限內</option>
+              <option value="canceled">已解約</option>
             </select>
           </div>
           <div class="flex items-center gap-3 md:col-span-2">
@@ -111,6 +112,7 @@
                 <th class="p-3 text-center font-medium whitespace-nowrap">已登錄（逾期）</th>
                 <th class="p-3 text-center font-medium whitespace-nowrap">未登錄・已逾期</th>
                 <th class="p-3 text-center font-medium whitespace-nowrap">未登錄・期限內</th>
+                <th class="p-3 text-center font-medium whitespace-nowrap">已解約</th>
               </tr>
             </thead>
             <tbody id="statsTbody" class="divide-y"></tbody>
@@ -160,7 +162,8 @@
       { project:'TheTop', unit:'B棟-1-8F',  cust:'黃小姐', price:3500, sales:'李美華', pm:'陳專案', signDate:'2026-05-10', actualDate:'',           serial:'', notifyLog:[] },
       { project:'新理想', unit:'A棟-3-12F', cust:'張先生', price:4200, sales:'徐X恩', pm:'黃專案', signDate:'2026-06-25', actualDate:'',           serial:'', notifyLog:[] },
       { project:'畫世代', unit:'B棟-2-5F',  cust:'吳太太', price:2600, sales:'王小明', pm:'林專案', signDate:'2026-06-30', actualDate:'',           serial:'', notifyLog:[] },
-      { project:'TheTop', unit:'A棟-4-6F',  cust:'蔡先生', price:3100, sales:'李美華', pm:'陳專案', signDate:'2026-06-01', actualDate:'2026-07-01', serial:'112T-預售-000210', notifyLog:[] },
+      { project:'TheTop', unit:'A棟-4-6F',  cust:'蔡先生', price:3100, sales:'李美華', pm:'陳專案', signDate:'2026-06-01', actualDate:'2026-07-01', serial:'112T-預售-000210', notifyLog:[],
+        canceled:{ date:'2026-07-05', note:'客戶財務因素解約，已另案辦理解約申報' } },
       { project:'新理想', unit:'C棟-2-3F',  cust:'鄭先生', price:2400, sales:'周大寶', pm:'黃專案', signDate:'2026-05-25', actualDate:'',           serial:'', notifyLog:[] },
     ];
 
@@ -184,7 +187,9 @@
 
     // 判定登錄狀態
     // onTime 已登錄準時 / late 已登錄逾期 / overdue 未登錄已逾期 / pending 未登錄期限內
+    // canceled 已解約：解約另案申報，原申報資料僅留存，不再參與逾期判定
     function calcStatus(deal) {
+      if (deal.canceled) return 'canceled';
       const due = calcDueDate(deal.signDate);
       const today = fmt(new Date());
       if (deal.actualDate) {
@@ -194,10 +199,11 @@
     }
 
     const STATUS_META = {
-      onTime:  { text:'已登錄（準時）', cls:'bg-green-100 text-green-700 border border-green-300' },
-      late:    { text:'已登錄（逾期）', cls:'bg-orange-100 text-orange-700 border border-orange-300' },
-      overdue: { text:'未登錄・已逾期', cls:'bg-red-100 text-red-700 border border-red-300' },
-      pending: { text:'未登錄・期限內', cls:'bg-gray-100 text-gray-600 border border-gray-300' },
+      onTime:   { text:'已登錄（準時）', cls:'bg-green-100 text-green-700 border border-green-300' },
+      late:     { text:'已登錄（逾期）', cls:'bg-orange-100 text-orange-700 border border-orange-300' },
+      overdue:  { text:'未登錄・已逾期', cls:'bg-red-100 text-red-700 border border-red-300' },
+      pending:  { text:'未登錄・期限內', cls:'bg-gray-100 text-gray-600 border border-gray-300' },
+      canceled: { text:'已解約', cls:'bg-gray-700 text-white border border-gray-700' },
     };
 
     // 建案下拉選單
@@ -245,8 +251,9 @@
         const notifyDate = calcNotifyDate(d.signDate);
         // 通知日已到且尚未登錄 → 標示系統已發通知給業務與專案
         const notified = notifyDate && today >= notifyDate && !d.actualDate;
+        const isCanceled = !!d.canceled;
         const tr = document.createElement('tr');
-        tr.className = i % 2 ? 'bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50';
+        tr.className = (i % 2 ? 'bg-gray-50 hover:bg-gray-100' : 'hover:bg-gray-50') + (isCanceled ? ' opacity-60' : '');
         tr.innerHTML = `
           <td class="p-3 align-top whitespace-nowrap">${d.project}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.unit}</td>
@@ -254,17 +261,21 @@
           <td class="p-3 align-top text-right whitespace-nowrap">${d.price.toLocaleString()}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.sales}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.signDate || '—'}</td>
-          <td class="p-3 align-top whitespace-nowrap">${notifyDate || '—'}${notified ? '<div class="text-[11px] text-blue-600 mt-0.5">已自動通知業務/專案</div>' : ''}${(d.notifyLog || []).length ? `<div class="text-[11px] text-purple-600 mt-0.5">手動通知 ${d.notifyLog.length} 次（最後 ${d.notifyLog[d.notifyLog.length-1].date}）</div>` : ''}</td>
-          <td class="p-3 align-top whitespace-nowrap">${calcDueDate(d.signDate) || '—'}</td>
+          <td class="p-3 align-top whitespace-nowrap">${isCanceled ? '—' : (notifyDate || '—')}${!isCanceled && notified ? '<div class="text-[11px] text-blue-600 mt-0.5">已自動通知業務/專案</div>' : ''}${!isCanceled && (d.notifyLog || []).length ? `<div class="text-[11px] text-purple-600 mt-0.5">手動通知 ${d.notifyLog.length} 次（最後 ${d.notifyLog[d.notifyLog.length-1].date}）</div>` : ''}</td>
+          <td class="p-3 align-top whitespace-nowrap">${isCanceled ? '—' : (calcDueDate(d.signDate) || '—')}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.actualDate || '—'}</td>
           <td class="p-3 align-top whitespace-nowrap">${d.serial || '—'}</td>
           <td class="p-3 align-top text-center whitespace-nowrap">
             <span class="inline-block px-2 py-1 rounded text-xs ${meta.cls}">${meta.text}</span>
+            ${isCanceled ? `<div class="text-[11px] text-gray-500 mt-1">解約日 ${d.canceled.date}</div>${d.canceled.note ? `<div class="text-[11px] text-gray-400 mt-0.5 max-w-[150px] whitespace-normal">${d.canceled.note}</div>` : ''}` : ''}
           </td>
           <td class="p-3 align-top text-center whitespace-nowrap">
             <div class="flex gap-1 justify-center">
-              <button class="border ${d.actualDate ? 'border-gray-300 text-gray-600 hover:bg-gray-100' : 'border-sky-300 text-sky-600 hover:bg-sky-50'} px-3 py-1 rounded text-xs" onclick="openDeclModal(${DEALS.indexOf(d)})">${d.actualDate ? '修改登錄' : '登錄'}</button>
-              ${!d.actualDate ? `<button class="border border-purple-300 text-purple-600 hover:bg-purple-50 px-3 py-1 rounded text-xs" onclick="openNotifyModal(${DEALS.indexOf(d)})">通知</button>` : ''}
+              ${isCanceled
+                ? `<button class="border border-gray-300 text-gray-500 hover:bg-gray-100 px-3 py-1 rounded text-xs" onclick="unmarkCanceled(${DEALS.indexOf(d)})">取消解約註記</button>`
+                : `<button class="border ${d.actualDate ? 'border-gray-300 text-gray-600 hover:bg-gray-100' : 'border-sky-300 text-sky-600 hover:bg-sky-50'} px-3 py-1 rounded text-xs" onclick="openDeclModal(${DEALS.indexOf(d)})">${d.actualDate ? '修改登錄' : '登錄'}</button>
+                  ${!d.actualDate ? `<button class="border border-purple-300 text-purple-600 hover:bg-purple-50 px-3 py-1 rounded text-xs" onclick="openNotifyModal(${DEALS.indexOf(d)})">通知</button>` : ''}
+                  <button class="border border-gray-400 text-gray-600 hover:bg-gray-100 px-3 py-1 rounded text-xs" onclick="openCancelModal(${DEALS.indexOf(d)})">註記解約</button>`}
             </div>
           </td>`;
         tbody.appendChild(tr);
@@ -274,6 +285,69 @@
 
       // 查詢結果統計（依建案分組；以目前搜尋結果為基礎）
       renderStats(rows);
+    }
+
+    // ============================================================
+    // 註記解約：解約另案辦理解約申報，原申報資料僅留存
+    // 系統上只做狀態註記（可搜尋），不刪除任何已申報資料
+    // ============================================================
+    function openCancelModal(idx) {
+      const old = document.getElementById('__cxlModal__');
+      if (old) old.remove();
+      const d = DEALS[idx];
+      const inputStyle = "width:100%;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:14px;background:#f9fafb;box-sizing:border-box;";
+
+      const modal = document.createElement('div');
+      modal.id = '__cxlModal__';
+      modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;";
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:8px;width:100%;max-width:460px;box-shadow:0 20px 50px rgba(0,0,0,0.25);margin-top:80px;">
+          <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-weight:bold;font-size:16px;color:#374151;">註記解約</span>
+            <div style="font-size:13px;color:#6b7280;margin-top:4px;">${d.project}／${d.unit}／${d.cust}</div>
+          </div>
+          <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px;">
+            <div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:10px 12px;border-radius:4px;font-size:12px;color:#78350f;line-height:1.7;">
+              解約申報請另案向地政機關辦理；本系統僅做解約註記，${d.serial ? `原申報資料（序號 ${d.serial}）` : '原資料'}將留存不刪除。
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">解約日期 <span style="color:#ef4444;">*</span></label>
+              <input id="__cxDate__" type="date" style="${inputStyle}">
+            </div>
+            <div>
+              <label style="font-size:13px;color:#374151;display:block;margin-bottom:4px;">解約備註 <span style="color:#9ca3af;font-size:12px;">（建議註明解約原因與解約申報辦理狀態）</span></label>
+              <textarea id="__cxNote__" rows="2" placeholder="例：客戶財務因素解約，已另案辦理解約申報" style="${inputStyle};resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <div id="__cxErr__" style="display:none;font-size:12px;color:#ef4444;"></div>
+          </div>
+          <div style="padding:14px 24px 20px;display:flex;justify-content:center;gap:10px;border-top:1px solid #e5e7eb;background:#fafafa;">
+            <button id="__cxSaveBtn__" style="background:#a09080;color:#fff;border:0;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">確定註記</button>
+            <button id="__cxCancelBtn__" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:8px 28px;border-radius:4px;cursor:pointer;font-size:14px;">取消</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#__cxCancelBtn__').onclick = close;
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      modal.querySelector('#__cxSaveBtn__').onclick = () => {
+        const date = modal.querySelector('#__cxDate__').value;
+        const note = modal.querySelector('#__cxNote__').value.trim();
+        const err  = modal.querySelector('#__cxErr__');
+        if (!date) { err.textContent = '※ 請選解約日期'; err.style.display = 'block'; return; }
+        if (date < d.signDate) { err.textContent = '※ 解約日期不可早於簽約日期'; err.style.display = 'block'; return; }
+        d.canceled = { date, note };
+        close();
+        render();
+      };
+    }
+
+    // 取消解約註記（註記錯誤時使用）
+    function unmarkCanceled(idx) {
+      const d = DEALS[idx];
+      if (!confirm(`確定要取消 ${d.project}／${d.unit} 的解約註記嗎？\n該戶將恢復依日期判定登錄狀態。`)) return;
+      d.canceled = null;
+      render();
     }
 
     // ============================================================
@@ -404,13 +478,13 @@
 
       const byProject = {};
       rows.forEach(d => {
-        const p = byProject[d.project] ||= { total:0, onTime:0, late:0, overdue:0, pending:0 };
+        const p = byProject[d.project] ||= { total:0, onTime:0, late:0, overdue:0, pending:0, canceled:0 };
         p.total++;
         p[calcStatus(d)]++;
       });
 
       const cell = (v, colorCls) => `<td class="p-3 text-center ${v ? colorCls : 'text-gray-300'}">${v}</td>`;
-      const sum = { total:0, onTime:0, late:0, overdue:0, pending:0 };
+      const sum = { total:0, onTime:0, late:0, overdue:0, pending:0, canceled:0 };
 
       Object.entries(byProject).forEach(([name, c], i) => {
         Object.keys(sum).forEach(k => sum[k] += c[k]);
@@ -422,7 +496,8 @@
           ${cell(c.onTime, 'font-bold text-green-600')}
           ${cell(c.late, 'font-bold text-orange-500')}
           ${cell(c.overdue, 'font-bold text-red-600')}
-          ${cell(c.pending, 'font-bold text-gray-600')}`;
+          ${cell(c.pending, 'font-bold text-gray-600')}
+          ${cell(c.canceled, 'font-bold text-gray-700')}`;
         tbody.appendChild(tr);
       });
 
@@ -436,10 +511,11 @@
           ${cell(sum.onTime, 'font-bold text-green-600')}
           ${cell(sum.late, 'font-bold text-orange-500')}
           ${cell(sum.overdue, 'font-bold text-red-600')}
-          ${cell(sum.pending, 'font-bold text-gray-600')}`;
+          ${cell(sum.pending, 'font-bold text-gray-600')}
+          ${cell(sum.canceled, 'font-bold text-gray-700')}`;
         tbody.appendChild(tr);
       } else {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400">查無符合條件的成交戶</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-400">查無符合條件的成交戶</td></tr>';
       }
     }
 
